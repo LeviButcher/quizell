@@ -1,0 +1,127 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           quizell
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/quizell#readme>
+homepage:       https://github.com/levibutcher/quizell#readme
+bug-reports:    https://github.com/levibutcher/quizell/issues
+author:         Levi Butcher
+maintainer:     example@example.com
+copyright:      2022 Levi Butcher
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/levibutcher/quizell
+
+library
+  exposed-modules:
+      Lib
+      MainHelpers
+      QuizParser
+      TUI
+      Utils
+  other-modules:
+      Paths_quizell
+  hs-source-dirs:
+      src
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , brick
+    , lens
+    , optparse-applicative
+    , parsec
+    , random
+    , random-shuffle
+    , split
+    , time
+    , vty
+  default-language: Haskell2010
+
+executable quizell
+  main-is: Main.hs
+  other-modules:
+      Mainx
+      Paths_quizell
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , brick
+    , lens
+    , optparse-applicative
+    , parsec
+    , quizell
+    , random
+    , random-shuffle
+    , split
+    , time
+    , vty
+  default-language: Haskell2010
+
+executable quizell2
+  main-is: Mainx.hs
+  other-modules:
+      Main
+      Paths_quizell
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is Mainx
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , brick
+    , lens
+    , optparse-applicative
+    , parsec
+    , quizell
+    , random
+    , random-shuffle
+    , split
+    , time
+    , vty
+  default-language: Haskell2010
+
+test-suite quizell-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Unit
+      Paths_quizell
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , brick
+    , lens
+    , optparse-applicative
+    , parsec
+    , quizell
+    , random
+    , random-shuffle
+    , split
+    , time
+    , vty
+  default-language: Haskell2010
