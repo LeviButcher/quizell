@@ -1,4 +1,4 @@
-## quizell
+# quizell
 
 A quiz taking CLI
 
@@ -6,7 +6,7 @@ A quiz taking CLI
 
 Folder Layout
 
-```
+```bash
 ./
 |  data -> examples quiz file
 |  src -> Library Source code
@@ -26,16 +26,16 @@ No Installation is necessary. The executable is at the root of the submission fo
 
 Available options:
 
-```
+```bash
   -f,--file Quiz File Path Full or Relative path to Quiz file
   -l,--length INT          Number of questions to use
   -t,--tui                 Turn on TUI mode (Works only on Unix)
   -h,--help                Show this help text
 ```
 
-#### Example Command (assumes you are in the quizell folder)
+#### Example Command Unix (assumes you are in the quizell folder)
 
-`quizell -f data/default.q`
+`quizell -f data/default`
 
 ### Windows
 
@@ -43,18 +43,18 @@ Run the quizell executable in your terminal of choice (Powershell or CommandLine
 
 `quizell.exe (-f|--file <file-path>) [-t|--tui] [-l|--length <number>]`
 
-```
+```bash
   -f,--file Quiz File Path Full or Relative path to Quiz file
   -l,--length INT          Number of questions to use
   -t,--tui                 Turn on TUI mode (Works only on Unix)
   -h,--help                Show this help text
 ```
 
-#### Example Command (assumes you are in the quizell folder)
+#### Example Command Windows (assumes you are in the quizell folder)
 
-`quizell.exe -f data/default.q`
+`quizell.exe -f data/default`
 
-# Extra Information
+## Extra Information
 
 You can read my design notes in `Design.md`.
 
