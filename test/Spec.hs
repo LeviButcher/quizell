@@ -1,11 +1,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
+import CLI (numberAnswers)
 import Control.Monad ()
 import Data.Char (isDigit)
 import Data.Either (isLeft)
 import Data.List (isInfixOf, isSubsequenceOf)
-import Lib (Quiz, QuizQuestion (QuizQuestion), QuizQuestions, numberAnswers, shuffleQuiz, toPOSIXFileString, toWindowsFileString)
+import Quiz (Question (Question), QuestionList, Quiz, shuffleQuestions, toPOSIXFileString, toWindowsFileString)
 import QuizParser (cleanQuizString, parseQuiz, quiz)
 import System.Random (newStdGen)
 import Test.QuickCheck
@@ -27,12 +28,12 @@ import Text.ParserCombinators.Parsec
 import Unit (runUnitTest)
 import Utils (allTrue, boundWrapAround, joinDelim)
 
-instance Arbitrary QuizQuestion where
+instance Arbitrary Question where
   arbitrary = do
     let randomLetter = choose ('a', 'Z')
     question <- listOf1 randomLetter
     answers <- listOf1 (listOf1 randomLetter)
-    QuizQuestion question answers <$> choose (0, length answers)
+    Question question answers <$> choose (0, length answers)
 
 invalidLines :: String -> Bool
 invalidLines ('*' : _) = True
@@ -40,25 +41,25 @@ invalidLines ('\r' : _) = True
 invalidLines [] = True
 invalidLines _ = False
 
-prop_posixFileStringParseCorrectly :: QuizQuestions -> Bool
+prop_posixFileStringParseCorrectly :: QuestionList -> Bool
 prop_posixFileStringParseCorrectly s =
   let res = (parseQuiz . cleanQuizString . toPOSIXFileString) s
    in case res of
         Left err -> False
         Right quiz -> quiz == s
 
-prop_windowsFileStringParseCorrectly :: QuizQuestions -> Bool
+prop_windowsFileStringParseCorrectly :: QuestionList -> Bool
 prop_windowsFileStringParseCorrectly s =
   let res = (parseQuiz . cleanQuizString . toWindowsFileString) s
    in case res of
         Left err -> False
         Right quiz -> quiz == s
 
-prop_shuffleQuizShouldShuffle :: Test.QuickCheck.Property.Property
-prop_shuffleQuizShouldShuffle = monadicIO $ do
+prop_shuffleQuestionsShouldShuffle :: Test.QuickCheck.Property.Property
+prop_shuffleQuestionsShouldShuffle = monadicIO $ do
   quiz <- run $ generate $ listOf arbitrary
   rng <- run newStdGen
-  let shuffled = shuffleQuiz rng quiz
+  let shuffled = shuffleQuestions rng quiz
   assert (length quiz == length shuffled)
   if length quiz <= 1 then assert (quiz == shuffled) else assert (quiz /= shuffled)
 
@@ -68,11 +69,6 @@ prop_invalidStringFails = do
   return $ case parseQuiz s of
     Left l -> if isInfixOf "Error Parsing Quiz File" $ show l then succeeded else failed
     Right r -> failed
-
-prop_QuizQuestionShows :: QuizQuestion -> Bool
-prop_QuizQuestionShows q =
-  let QuizQuestion qu a c = q
-   in show q == show (QuizQuestion qu a c)
 
 prop_numberLines :: [String] -> Bool
 prop_numberLines s =
