@@ -33,6 +33,7 @@ dependencies:
 - vty
 - lens
 - optparse-applicative
+- ListZipper
 
 library:
   source-dirs: src

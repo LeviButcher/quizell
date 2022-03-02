@@ -1,4 +1,6 @@
-module Utils (allTrue, joinDelim, boundWrapAround) where
+module Utils (allTrue, joinDelim, boundWrapAround, getTimeString) where
+
+import Data.Time (DiffTime, NominalDiffTime, defaultTimeLocale, formatTime)
 
 allTrue :: [Bool] -> Bool
 allTrue = all (== True)
@@ -13,3 +15,6 @@ boundWrapAround f l u i
   | otherwise = o
   where
     o = f i
+
+getTimeString :: NominalDiffTime -> String
+getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"

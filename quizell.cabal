@@ -25,8 +25,9 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      CLI
       MainHelpers
+      Quiz
       QuizParser
       TUI
       Utils
@@ -36,6 +37,7 @@ library
       src
   build-depends:
       HUnit
+    , ListZipper
     , QuickCheck
     , aeson
     , base >=4.7 && <5
@@ -60,6 +62,7 @@ executable quizell
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       HUnit
+    , ListZipper
     , QuickCheck
     , aeson
     , base >=4.7 && <5
@@ -85,6 +88,7 @@ executable quizell2
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is Mainx
   build-depends:
       HUnit
+    , ListZipper
     , QuickCheck
     , aeson
     , base >=4.7 && <5
@@ -111,6 +115,7 @@ test-suite quizell-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       HUnit
+    , ListZipper
     , QuickCheck
     , aeson
     , base >=4.7 && <5

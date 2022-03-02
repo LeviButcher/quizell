@@ -10,33 +10,35 @@ module MainHelpers
 where
 
 import Brick (defaultMain)
+import qualified CLI
 import Control.Arrow (left)
 import Control.Exception (try)
 import Data.Maybe (catMaybes)
 import Data.Time (diffUTCTime, getCurrentTime)
-import qualified Lib as L
+import qualified Quiz as Q
 import qualified QuizParser as QP
 import System.Random (newStdGen)
 import TUI (QuizState (..), quizApp, startState)
-import Text.Printf
+import Text.Printf (printf)
+import Utils (getTimeString)
 
 getQuizFile :: String -> IO (Either String String)
 getQuizFile quizPath = do
   readResult <- try (readFile quizPath) :: IO (Either IOError String)
   return $ left (const $ "File entered does not exist: " ++ quizPath) readResult
 
-getParsedQuiz :: Either String String -> IO (Either String L.QuizQuestions)
+getParsedQuiz :: Either String String -> IO (Either String Q.QuestionList)
 getParsedQuiz x = return $ do
   r <- x
   left (const "Failed to parse file correctly\nPlease try again\n") $ QP.parseQuiz . QP.cleanQuizString $ r
 
-randomizeQuiz :: Either String L.QuizQuestions -> IO (Either String L.QuizQuestions)
+randomizeQuiz :: Either String Q.QuestionList -> IO (Either String Q.QuestionList)
 randomizeQuiz (Right quiz) = do
   rng <- newStdGen
-  return . Right $ L.shuffleQuiz rng quiz
+  return . Right $ Q.shuffleQuestions rng quiz
 randomizeQuiz l = return l
 
-trimQuiz :: Int -> Either String L.QuizQuestions -> Either String L.QuizQuestions
+trimQuiz :: Int -> Either String Q.QuestionList -> Either String Q.QuestionList
 trimQuiz _ (Left l) = Left l
 trimQuiz n (Right q)
   | n < 0 = Left $ show n ++ " is a invalid number of questions"
@@ -44,23 +46,24 @@ trimQuiz n (Right q)
   | n <= length q = Right $ take n q
   | otherwise = Left $ "Quiz only has " ++ show n ++ "Questions"
 
-normalApp :: L.QuizQuestions -> IO ()
-normalApp quiz = do
+normalApp :: Q.QuestionList -> IO ()
+normalApp qList = do
+  let quiz = Q.startQuiz qList
   quizStart <- getCurrentTime
-  finishedQuiz <- L.takeQuiz putStr getLine quiz
+  finishedQuiz <- CLI.takeQuiz putStr getLine quiz
   quizEnd <- getCurrentTime
-  L.presentResults putStrLn finishedQuiz
+  CLI.presentResults putStrLn finishedQuiz
   let elapsedTime = diffUTCTime quizEnd quizStart
-  printf "Total Time: %s" (show elapsedTime)
+  putStrLn $ "Total Time: " ++ getTimeString elapsedTime
 
-transformFinishedQuiz :: (Maybe Int, L.QuizQuestion) -> Maybe (Int, L.QuizQuestion)
-transformFinishedQuiz (Nothing, _) = Nothing
-transformFinishedQuiz (Just x, y) = Just (succ x, y)
+transformFinishedQuiz :: Q.AnsweredQuestion -> Maybe (Q.Question, Int)
+transformFinishedQuiz (_, Nothing) = Nothing
+transformFinishedQuiz (x, Just y) = Just (x, y + 1)
 
-tuiApp :: L.QuizQuestions -> IO ()
+tuiApp :: Q.QuestionList -> IO ()
 tuiApp quiz = do
   s <- startState quiz
   finalState <- defaultMain quizApp s
-  let maybeAnswers = _answeredQuiz finalState
-  let answers = catMaybes $ transformFinishedQuiz <$> maybeAnswers
+  -- let maybeAnswers = _answeredQuiz finalState
+  -- let answers = catMaybes $ transformFinishedQuiz <$> maybeAnswers
   return ()

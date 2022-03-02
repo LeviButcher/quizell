@@ -43,6 +43,9 @@ packages:
 # Override default flag values for local packages and extra-deps
 # flags: {}
 
+extra-deps:
+- ListZipper-1.2.0.2@sha256:5bbb5a4cc7f1cae962310407f711b874c087b48a0ba39b9fcce84cdb0ff5244c,639
+
 # Extra package databases containing global packages
 # extra-package-dbs: []
 

@@ -7,7 +7,7 @@ module QuizParser
 where
 
 import qualified Data.List.Split as S
-import qualified Lib as L
+import qualified Quiz as Q
 import Text.Parsec (endOfLine, (<|>))
 import qualified Text.Parsec as P
 import Text.ParserCombinators.Parsec
@@ -33,20 +33,20 @@ invalidLines _ = False
 cleanQuizString :: String -> String
 cleanQuizString = unlines . filter (not . invalidLines) . lines . filter (/= '\r')
 
-parseQuiz :: String -> Either ParseError L.QuizQuestions
+parseQuiz :: String -> Either ParseError Q.QuestionList
 parseQuiz = parse quiz "Error Parsing Quiz File"
 
-quiz :: GenParser Char st L.QuizQuestions
+quiz :: GenParser Char st Q.QuestionList
 quiz = do
   quizSheet <- many quizQuestion
   eof
   return quizSheet
 
-quizQuestion :: GenParser Char st L.QuizQuestion
+quizQuestion :: GenParser Char st Q.Question
 quizQuestion = do
   q <- question
   (ci, a) <- answers
-  return (L.QuizQuestion q a ci)
+  return (Q.Question q a ci)
 
 questionMarker :: GenParser Char st String
 questionMarker = do

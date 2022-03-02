@@ -17,14 +17,18 @@ import Data.Semigroup (Option)
 import Data.Time (diffUTCTime, getCurrentTime)
 import Graphics.Vty (red)
 import qualified Graphics.Vty as V
-import qualified Lib as L
 import MainHelpers
+  ( getParsedQuiz,
+    getQuizFile,
+    normalApp,
+    randomizeQuiz,
+    trimQuiz,
+  )
 import Options.Applicative (auto, execParser, fullDesc, header, help, helper, info, long, metavar, option, progDesc, short, strOption, switch, value, (<**>))
 import Options.Applicative.Types (Parser)
 import qualified QuizParser as QP
 import System.Environment (getArgs)
 import System.Random (newStdGen)
-import TUI (QuizState (_answeredQuiz), quizApp, startState)
 import qualified Text.ParserCombinators.Parsec as P
 import Text.Printf (printf)
 import Text.Read (readEither, readMaybe)
