@@ -9,21 +9,7 @@ import Data.Aeson (FromJSON (parseJSON), Value (Object), (.:))
 import Data.List.Zipper (toList)
 import Data.Maybe (fromMaybe)
 import GHC.Generics (Generic)
-import Quiz
-  ( AnsweredQuestion,
-    Answers,
-    Question (Question),
-    QuestionList,
-    Quiz,
-    QuizError (InvalidAnswer),
-    answerCurrentQuestion,
-    answerQuestion,
-    currentAnsweredQuestion,
-    currentQuestion,
-    isCorrect,
-    isEndOfQuiz,
-    nextQuestion,
-  )
+import qualified Quiz as Q
 import QuizResults (QuizResults (correct, taker, testFile, total), getResults)
 import System.Random (RandomGen (split))
 import System.Random.Shuffle (shuffle, shuffle')
@@ -31,14 +17,17 @@ import Text.Printf (printf)
 import Text.Read (readMaybe)
 import Utils (allTrue, joinDelim)
 
--- Note To Any Reader: I parameterized putStr and getLine in most functions for testing purposes
--- Hence why everything it taking a Monad m parameter
+type GetLine m = m String
 
-numberAnswers :: Answers -> String
+type PutStr m = (String -> m ())
+
+type GetUserName m = m String
+
+numberAnswers :: [String] -> String
 numberAnswers s = unlines $ (\(a, b) -> concat [show a, ") ", b]) <$> zip [1 ..] s
 
-outputQuestion :: Monad m => (String -> m ()) -> Question -> m ()
-outputQuestion putStr (Question question answers _) = do
+outputQuestion :: Monad m => PutStr m -> Q.Question -> m ()
+outputQuestion putStr (Q.Question question answers _) = do
   let putStrLn = (\x -> putStr $ x ++ "\n")
       numberedAnswers = numberAnswers answers
   putStr "\nQuestion: "
@@ -46,11 +35,11 @@ outputQuestion putStr (Question question answers _) = do
   putStrLn "\nPossible Choices: "
   putStrLn numberedAnswers
 
-outputCorrectAnswerInfo :: Monad m => (String -> m ()) -> m String -> Quiz -> m ()
+outputCorrectAnswerInfo :: (Monad m, Q.Quiz q) => PutStr m -> GetLine m -> q -> m ()
 outputCorrectAnswerInfo putStr getLine q =
   do
-    let x@(Question _ _ ci, _) = currentAnsweredQuestion q
-    if isCorrect x
+    let x@(Q.Question _ _ ci, _) = Q.currAnswer q
+    if Q.isCurrCorrect q
       then putStr "You answered correctly!!!"
       else
         putStr "You answered incorrectly"
@@ -59,34 +48,28 @@ outputCorrectAnswerInfo putStr getLine q =
     >> getLine
     >> return ()
 
-userAnswerQuestion :: Monad m => (String -> m ()) -> m String -> Quiz -> m (Either QuizError Quiz)
+userAnswerQuestion :: (Monad m, Q.Quiz q) => PutStr m -> GetLine m -> q -> m (Either Q.QuizError q)
 userAnswerQuestion putStr getLine quiz = do
-  let x@(Question question answers correctI) = currentQuestion quiz
+  let x@(Q.Question question answers correctI) = Q.curr quiz
   let putStrLn = (\x -> putStr $ x ++ "\n")
   outputQuestion putStr x
   putStrLn "Enter # of answer:"
   guess <- fromMaybe 0 . readMaybe <$> getLine
-  return $ answerCurrentQuestion quiz guess
+  return $ Q.answerCurr quiz guess
 
-type GetLine m = m String
-
-type PutStr m = (String -> m ())
-
-type GetUserName m = m String
-
-takeQuiz :: Monad m => GetUserName m -> PutStr m -> GetLine m -> String -> Quiz -> m QuizResults
+takeQuiz :: (Monad m, Q.Quiz q) => GetUserName m -> PutStr m -> GetLine m -> String -> q -> m QuizResults
 takeQuiz getUser putStr getLine file q = do
   let putStrLn = (\x -> putStr $ x ++ "\n")
   res <- userAnswerQuestion putStr getLine q
 
   case res of
     Left err -> case err of
-      InvalidAnswer -> putStrLn "Invalid Answer\nTry Again\n\n" >> takeQuiz getUser putStr getLine file q
+      Q.InvalidAnswer -> putStrLn "Invalid Answer\nTry Again\n\n" >> takeQuiz getUser putStr getLine file q
     Right zip -> do
       outputCorrectAnswerInfo putStrLn getLine zip -- Output answer info before moving to next questions
-      if isEndOfQuiz q
-        then getResults <$> getUser <*> pure file <*> pure q
-        else takeQuiz getUser putStr getLine file (nextQuestion zip)
+      if Q.hasNext q
+        then takeQuiz getUser putStr getLine file (Q.next zip)
+        else getResults <$> getUser <*> pure file <*> pure q
 
 presentResults :: Monad m => PutStr m -> QuizResults -> m ()
 presentResults putStrLn qr = do

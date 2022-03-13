@@ -2,23 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
-module Quiz where
+module Quiz (Quiz (..), shuffleQuestions, toWindowsFileString, toPOSIXFileString, Question (..), QuestionList, AnsweredQuestion, Direction (..), QuizError (..)) where
 
 import Data.Aeson (FromJSON (parseJSON), Value (Object), (.:))
-import Data.List.Zipper
-  ( Zipper (..),
-    cursor,
-    endp,
-    foldlz,
-    fromList,
-    left,
-    replace,
-    right,
-    safeCursor,
-    start,
-    toList,
-  )
-import Data.Maybe (isJust)
+import Data.Aeson.Types (FromJSON (parseJSON))
 import GHC.Generics (Generic)
 import System.Random (RandomGen (split))
 import System.Random.Shuffle (shuffle')
@@ -42,77 +29,6 @@ instance FromJSON Question where
 type QuestionList = [Question]
 
 type AnsweredQuestion = (Question, Maybe Int)
-
-type Quiz = Zipper AnsweredQuestion
-
-data QuizError = InvalidAnswer
-
-data Direction = Up | Down
-
-answerQuestion :: Question -> Int -> Either QuizError AnsweredQuestion
-answerQuestion q@(Question _ a ci) ai
-  | ai < 0 || ai > length a = Left InvalidAnswer
-  | otherwise = Right (q, pure ai)
-
-answerCurrentQuestion :: Quiz -> Int -> Either QuizError Quiz
-answerCurrentQuestion z i = do
-  answered <- answerQuestion (fst . cursor $ z) i
-  Right $ replace answered z
-
-directionalAnswerQuestion :: AnsweredQuestion -> Direction -> AnsweredQuestion
-directionalAnswerQuestion (q, Nothing) _ = (q, Just 1)
-directionalAnswerQuestion (q@(Question _ a _), Just x) Up
-  | (pred . length $ a) >= x = (q, Just $ x + 1)
-  | otherwise = (q, Just 1)
-directionalAnswerQuestion (q@(Question _ a _), Just x) Down
-  | 0 < x = (q, Just $ x - 1)
-  | otherwise = (q, Just 1)
-
-directionalAnswerCurrentQuestion :: Direction -> Quiz -> Either QuizError Quiz
-directionalAnswerCurrentQuestion i z = do
-  let answered = directionalAnswerQuestion (cursor z) i
-  Right $ replace answered z
-
-nextQuestion :: Quiz -> Quiz
-nextQuestion = right
-
-prevQuestion :: Quiz -> Quiz
-prevQuestion = left
-
--- End of quiz is when only one question is left in question zipper
-isEndOfQuiz :: Quiz -> Bool
-isEndOfQuiz (Zip l r) = (1 ==) . length $ l
-
-currentQuestionNumber :: Quiz -> Int
-currentQuestionNumber (Zip [] []) = 0
-currentQuestionNumber (Zip l _) = length l + 1
-
-totalQuestions :: Quiz -> Int
-totalQuestions = length . toList
-
-currentQuestion :: Quiz -> Question
-currentQuestion q = fst $ cursor q
-
-currentAnsweredQuestion :: Quiz -> AnsweredQuestion
-currentAnsweredQuestion = cursor
-
-isCorrect :: AnsweredQuestion -> Bool
-isCorrect (_, Nothing) = False
-isCorrect (Question _ _ c, Just x) = x == c
-
--- cursor guaranteed to be safe inside foldlz
-totalAnswered :: Quiz -> Int
-totalAnswered = foldlz (\a z -> a + if isJust (snd $ cursor z) then 1 else 0) 0 . start
-
-totalCorrect :: Quiz -> Int
-totalCorrect = length . filter id . map isCorrect . toList
-
-startQuiz :: QuestionList -> Maybe Quiz
-startQuiz [] = Nothing
-startQuiz qs = Just $ fromList $ zip qs (repeat Nothing)
-
-isLastQuestion :: Quiz -> Bool
-isLastQuestion q = currentQuestionNumber q == totalQuestions q
 
 -- Guarantees a different order of the quiz passed in
 shuffleQuestions :: RandomGen gen => gen -> QuestionList -> QuestionList
@@ -141,3 +57,25 @@ toWindowsFileString = toFileString "\r\n"
 
 toPOSIXFileString :: QuestionList -> String
 toPOSIXFileString = toFileString "\n"
+
+data QuizError = InvalidAnswer
+
+data Direction = Up | Down
+
+class Quiz a where
+  curr :: a -> Question
+  curr = fst . currAnswer
+
+  currAnswer :: a -> AnsweredQuestion
+  next :: a -> a
+  prev :: a -> a
+  hasNext :: a -> Bool
+  hasPrev :: a -> Bool
+  currPosition :: a -> Int
+  answerCurr :: a -> Int -> Either QuizError a
+  directionAnswerCurr :: a -> Direction -> a -- Can probably define via answerCurr
+  total :: a -> Int
+  totalAnswered :: a -> Int
+  totalCorrect :: a -> Int
+  createQuiz :: QuestionList -> Maybe a
+  isCurrCorrect :: a -> Bool

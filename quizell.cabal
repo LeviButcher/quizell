@@ -27,10 +27,11 @@ library
   exposed-modules:
       CLI
       MainHelpers
+      QuestionParser
       Quiz
-      QuizParser
       QuizResults
       Utils
+      ZipperQuiz
   other-modules:
       Paths_quizell
   hs-source-dirs:

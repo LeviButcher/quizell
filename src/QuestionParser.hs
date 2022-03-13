@@ -1,8 +1,5 @@
-module QuizParser
-  ( cleanQuizString,
-    question,
-    parseQuiz,
-    quiz,
+module QuestionParser
+  ( parseQuestions,
   )
 where
 
@@ -30,14 +27,14 @@ invalidLines ('*' : _) = True
 invalidLines [] = True
 invalidLines _ = False
 
-cleanQuizString :: String -> String
-cleanQuizString = unlines . filter (not . invalidLines) . lines . filter (/= '\r')
+cleanQuestionString :: String -> String
+cleanQuestionString = unlines . filter (not . invalidLines) . lines . filter (/= '\r')
 
-parseQuiz :: String -> Either ParseError Q.QuestionList
-parseQuiz = parse quiz "Error Parsing Quiz File"
+parseQuestions :: String -> Either ParseError Q.QuestionList
+parseQuestions = parse questionList "Error Parsing Quiz File" . cleanQuestionString
 
-quiz :: GenParser Char st Q.QuestionList
-quiz = do
+questionList :: GenParser Char st Q.QuestionList
+questionList = do
   quizSheet <- many quizQuestion
   eof
   return quizSheet

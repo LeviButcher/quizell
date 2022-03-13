@@ -1,6 +1,7 @@
 module Main where
 
 import Brick (defaultMain)
+import qualified Data.Functor
 import MainHelpers
   ( getParsedQuiz,
     getQuizFile,
@@ -28,11 +29,12 @@ import Options.Applicative
     (<**>),
   )
 import Options.Applicative.Types (Parser)
+import qualified QuestionParser as QP
 import qualified Quiz as Q
-import qualified QuizParser as QP
 import QuizResults (QuizResults, getResults, toUnixLog)
 import System.Posix.User (getLoginName)
-import TUI (QuizState, quizApp, startState, _quiz)
+import TUI (QuizState (..), quizApp, startState)
+import ZipperQuiz (ZipperQuiz)
 
 data ProgramArgs = ProgramArgs
   { quizPath :: String,
@@ -66,16 +68,14 @@ runProgram (ProgramArgs q l t) = do
     Left err -> putStrLn err
     Right quiz -> do
       let prog = if t then tuiApp q getLoginName else normalApp q getLoginName
-      (prog quiz >>= (\x -> sequence $ toUnixLog <$> x)) *> pure ()
+      (prog quiz >>= (\x -> sequence $ toUnixLog <$> x)) Data.Functor.$> ()
 
 tuiApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QuizResults)
-tuiApp q getUser quiz = do
-  mS <- startState quiz
-  sequence
-    ( (flip fmap)
-        mS
-        ( \s -> do
-            finalState <- defaultMain quizApp s
-            getResults q <$> getUser <*> pure (_quiz finalState)
-        )
+tuiApp q getUser questionList = do
+  mS <- startState questionList :: IO (Maybe (QuizState ZipperQuiz))
+  mapM
+    ( \s -> do
+        finalState <- defaultMain quizApp s
+        getResults q <$> getUser <*> pure (quiz finalState)
     )
+    mS

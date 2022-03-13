@@ -20,7 +20,7 @@ import MainHelpers
   )
 import Options.Applicative (auto, execParser, fullDesc, header, help, helper, info, long, metavar, option, progDesc, short, strOption, switch, value, (<**>))
 import Options.Applicative.Types (Parser)
-import qualified QuizParser as QP
+import qualified QuestionParser as QP
 import QuizResults (toWindowsLog)
 import System.Environment (getArgs)
 import System.Random (newStdGen)
@@ -56,4 +56,6 @@ runProgram (ProgramArgs q l) = do
   let pq2 = trimQuiz l pq
   case pq2 of
     Left err -> putStrLn err
-    Right quiz -> normalApp q (pure "") quiz >>= toWindowsLog
+    Right quiz -> do
+      res <- normalApp q (pure "") quiz
+      (sequence $ pure toWindowsLog <*> res) *> return ()

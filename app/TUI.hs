@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE DatatypeContexts #-}
 
 module TUI
   ( quizApp,
@@ -8,48 +9,71 @@ module TUI
 where
 
 import Brick
-import Brick.Widgets.Border
-import Brick.Widgets.Center
-import Control.Lens
+    ( attrMap,
+      attrName,
+      continue,
+      halt,
+      neverShowCursor,
+      suspendAndResume,
+      fg,
+      (<+>),
+      (<=>),
+      emptyWidget,
+      hBox,
+      hLimit,
+      padLeftRight,
+      str,
+      strWrap,
+      vBox,
+      withAttr,
+      AttrMap,
+      App(..),
+      EventM,
+      Widget,
+      BrickEvent(VtyEvent),
+      Next )
+import Brick.Widgets.Border ( border, borderWithLabel )
+import Brick.Widgets.Center ( center, hCenter, vCenter )
+import Control.Lens ( (&), (%~), (.~), element )
 import qualified Data.Bifunctor
 import Data.Either (fromRight)
 import Data.List (group, intersperse)
 import Data.List.Zipper (cursor)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime, getCurrentTime, nominalDay)
-import Graphics.Vty
+import Graphics.Vty ( defAttr, blue, green, red )
 import qualified Graphics.Vty as V
-import Quiz (QuizError, directionalAnswerCurrentQuestion, startQuiz)
 import qualified Quiz as Q
-import QuizResults
+import QuizResults ( QuizResults(QuizResults), getResults )
 import Text.Printf (PrintfType, printf)
 import Utils (boundWrapAround, getTimeString)
 
-data QuizState = QuizState
-  { _quiz :: Q.Quiz,
-    _startTime :: UTCTime,
-    _finishedQuiz :: Bool,
-    _endTime :: Maybe UTCTime
+-- I'd like to change this to avoid misfeature DatatypeContexts
+data (Q.Quiz q) => QuizState q = QuizState
+  { quiz :: q,
+    startTime :: UTCTime,
+    finishedQuiz :: Bool,
+    endTime :: Maybe UTCTime
   }
-  deriving (Show)
-
-makeLenses ''QuizState
 
 data Navigation = LEFT | RIGHT deriving (Eq, Show)
 
-selectAnswer :: Q.Direction -> QuizState -> QuizState
-selectAnswer n q = q & quiz %~ (fromRight (q ^. quiz) . directionalAnswerCurrentQuestion n)
+selectAnswer :: (Q.Quiz q) => Q.Direction -> QuizState q -> QuizState q
+selectAnswer n q =
+  q
+    { quiz = Q.directionAnswerCurr (quiz q) n
+    }
 
-startState :: Q.QuestionList -> IO (Maybe QuizState)
+startState :: (Q.Quiz q) => Q.QuestionList -> IO (Maybe (QuizState q))
 startState q = do
   quizStart <- getCurrentTime
-  let mQuiz = startQuiz q
+  let mQuiz = Q.createQuiz q
   return $ QuizState <$> mQuiz <*> (pure quizStart) <*> (pure False) <*> Nothing
 
-topUI :: QuizState -> Widget ()
+topUI :: (Q.Quiz q) => QuizState q -> Widget ()
 topUI (QuizState q _ _ _) =
-  let questionCount = Q.totalQuestions q
-      current = Q.currentQuestionNumber q
+  let questionCount = Q.total q
+      current = Q.currPosition q
    in border . hCenter . str $ "Question " ++ show current ++ "/" ++ show questionCount
 
 bottomUI :: Widget ()
@@ -59,7 +83,7 @@ bottomUI =
     . intersperse (str "    ")
     $ str <$> ["Ctrl+C: Quit Quiz", "Right/Left: Next/Prev", "Up/Down: Select Answer", "Enter: Finish Quiz"]
 
-resultUI :: QuizState -> Widget ()
+resultUI :: (Q.Quiz q) => QuizState q -> Widget ()
 resultUI (QuizState a s True e) =
   let (QuizResults answered total correct _ _) = getResults "" "" a
       elapsedTime = fromMaybe nominalDay $ Just diffUTCTime <*> e <*> Just s
@@ -76,9 +100,9 @@ wrapOnlyIf m n t
   | n < m = str t
   | otherwise = hLimit m . strWrap $ t
 
-questionUI :: QuizState -> Widget ()
+questionUI :: (Q.Quiz q) => QuizState q -> Widget ()
 questionUI (QuizState quiz s done _) =
-  let (Q.Question q a ci, s) = cursor quiz
+  let (Q.Question q a ci, s) = Q.currAnswer quiz
       questionWidget = borderWithLabel (str "Question") . hCenter . wrapOnlyIf 100 (length q) $ q
       answerList = ("[ ] " ++) <$> a & (element (pred $ fromMaybe (-1) s) %~ (element 1 .~ 'x'))
       selectedAnswerList =
@@ -93,24 +117,27 @@ questionUI (QuizState quiz s done _) =
    in questionWidget <=> selectedAnswerList
 
 -- Need to handle end of zip here
-moveQuestion :: Navigation -> QuizState -> QuizState
-moveQuestion RIGHT q = q & quiz %~ (\l -> if Q.isLastQuestion l then l else Q.nextQuestion l)
-moveQuestion LEFT q = q & quiz %~ Q.prevQuestion
+moveQuestion :: (Q.Quiz q) => Navigation -> QuizState q -> QuizState q
+moveQuestion RIGHT q = q { quiz = (\l -> if Q.hasNext l then l else Q.next l) . quiz $ q}
+moveQuestion LEFT q = q {quiz = Q.prev . quiz $ q}
 
-drawUI :: QuizState -> [Widget ()]
+drawUI :: (Q.Quiz q) => QuizState q -> [Widget ()]
 drawUI qs =
   let mainUI = topUI qs <=> questionUI qs <=> bottomUI
-   in if qs ^. finishedQuiz then [resultUI qs <+> mainUI] else [mainUI]
+   in if finishedQuiz qs then [resultUI qs <+> mainUI] else [mainUI]
 
-endQuiz :: QuizState -> IO QuizState
+endQuiz :: (Q.Quiz q) => QuizState q -> IO (QuizState q)
 endQuiz st = do
   quizEnd <- getCurrentTime
-  return $ st & (finishedQuiz .~ True) . (endTime ?~ quizEnd)
+  return $  st {
+    finishedQuiz = True,
+    endTime = Just quizEnd
+  }
 
-handleEvents :: QuizState -> BrickEvent () e -> EventM () (Next QuizState)
+handleEvents :: (Q.Quiz q) => QuizState q -> BrickEvent () e -> EventM () (Next (QuizState q))
 handleEvents st (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = halt st
-handleEvents st (VtyEvent (V.EvKey V.KDown [])) = continue $ if st ^. finishedQuiz then st else selectAnswer Q.Up st
-handleEvents st (VtyEvent (V.EvKey V.KUp [])) = continue $ if st ^. finishedQuiz then st else selectAnswer Q.Down st
+handleEvents st (VtyEvent (V.EvKey V.KDown [])) = continue $ if finishedQuiz st then st else selectAnswer Q.Up st
+handleEvents st (VtyEvent (V.EvKey V.KUp [])) = continue $ if finishedQuiz st then st else selectAnswer Q.Down st
 handleEvents st (VtyEvent (V.EvKey V.KRight [])) = continue $ moveQuestion RIGHT st
 handleEvents st (VtyEvent (V.EvKey V.KLeft [])) = continue $ moveQuestion LEFT st
 handleEvents st (VtyEvent (V.EvKey V.KEnter [])) = suspendAndResume $ endQuiz st
@@ -126,7 +153,7 @@ quizAttrMap =
         (attrName "correct", fg green)
       ]
 
-quizApp :: App QuizState () ()
+quizApp :: (Q.Quiz q) => App (QuizState q) () ()
 quizApp =
   App
     { appDraw = drawUI,

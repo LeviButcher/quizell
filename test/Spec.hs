@@ -6,8 +6,8 @@ import Control.Monad ()
 import Data.Char (isDigit)
 import Data.Either (isLeft)
 import Data.List (isInfixOf, isSubsequenceOf)
+import QuestionParser (parseQuestions)
 import Quiz (Question (Question), QuestionList, Quiz, shuffleQuestions, toPOSIXFileString, toWindowsFileString)
-import QuizParser (cleanQuizString, parseQuiz, quiz)
 import System.Random (newStdGen)
 import Test.QuickCheck
   ( Arbitrary (arbitrary),
@@ -43,14 +43,14 @@ invalidLines _ = False
 
 prop_posixFileStringParseCorrectly :: QuestionList -> Bool
 prop_posixFileStringParseCorrectly s =
-  let res = (parseQuiz . cleanQuizString . toPOSIXFileString) s
+  let res = (parseQuestions . toPOSIXFileString) s
    in case res of
         Left err -> False
         Right quiz -> quiz == s
 
 prop_windowsFileStringParseCorrectly :: QuestionList -> Bool
 prop_windowsFileStringParseCorrectly s =
-  let res = (parseQuiz . cleanQuizString . toWindowsFileString) s
+  let res = (parseQuestions . toWindowsFileString) s
    in case res of
         Left err -> False
         Right quiz -> quiz == s
@@ -66,7 +66,7 @@ prop_shuffleQuestionsShouldShuffle = monadicIO $ do
 prop_invalidStringFails :: Gen Test.QuickCheck.Property.Result
 prop_invalidStringFails = do
   s <- listOf1 arbitrary
-  return $ case parseQuiz s of
+  return $ case parseQuestions s of
     Left l -> if isInfixOf "Error Parsing Quiz File" $ show l then succeeded else failed
     Right r -> failed
 

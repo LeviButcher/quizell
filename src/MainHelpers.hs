@@ -13,12 +13,13 @@ import Control.Arrow (left)
 import Control.Exception (try)
 import Data.Maybe (catMaybes)
 import Data.Time (diffUTCTime, getCurrentTime)
+import qualified QuestionParser as QP
 import qualified Quiz as Q
-import qualified QuizParser as QP
 import QuizResults (QuizResults)
 import System.Random (newStdGen)
 import Text.Printf (printf)
 import Utils (getTimeString)
+import ZipperQuiz
 
 getQuizFile :: String -> IO (Either String String)
 getQuizFile quizPath = do
@@ -28,7 +29,7 @@ getQuizFile quizPath = do
 getParsedQuiz :: Either String String -> IO (Either String Q.QuestionList)
 getParsedQuiz x = return $ do
   r <- x
-  left (const "Failed to parse file correctly\nPlease try again\n") $ QP.parseQuiz . QP.cleanQuizString $ r
+  left (const "Failed to parse file correctly\nPlease try again\n") $ QP.parseQuestions r
 
 randomizeQuiz :: Either String Q.QuestionList -> IO (Either String Q.QuestionList)
 randomizeQuiz (Right quiz) = do
@@ -46,7 +47,7 @@ trimQuiz n (Right q)
 
 normalApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QuizResults)
 normalApp file getUserName qList = do
-  let maybeQ = Q.startQuiz qList
+  let maybeQ = Q.createQuiz qList :: Maybe ZipperQuiz
 
   case maybeQ of
     Nothing -> putStrLn "Quiz List was Empty" >> return Nothing
