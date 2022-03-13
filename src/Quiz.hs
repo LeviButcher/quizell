@@ -45,12 +45,6 @@ type AnsweredQuestion = (Question, Maybe Int)
 
 type Quiz = Zipper AnsweredQuestion
 
-data QuizResults = QuizResults
-  { answered :: Int,
-    total :: Int,
-    correct :: Int
-  }
-
 data QuizError = InvalidAnswer | EndOfQuiz
 
 data Direction = Up | Down
@@ -113,14 +107,6 @@ totalAnswered = foldlz (\a z -> a + if isJust (snd $ cursor z) then 1 else 0) 0 
 
 totalCorrect :: Quiz -> Int
 totalCorrect = length . filter id . map isCorrect . toList
-
-getResults :: Quiz -> QuizResults
-getResults q =
-  QuizResults
-    { answered = totalAnswered q,
-      total = totalQuestions q,
-      correct = totalCorrect q
-    }
 
 startQuiz :: QuestionList -> Quiz
 startQuiz qs = fromList $ zip qs (repeat Nothing)

@@ -27,13 +27,11 @@ dependencies:
 - time
 - split
 - parsec
-- QuickCheck
-- HUnit
-- brick
-- vty
 - lens
 - optparse-applicative
 - ListZipper
+- directory
+- filepath
 
 library:
   source-dirs: src
@@ -48,10 +46,13 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - quizell
+    - brick
+    - vty
+    - unix
 
   quizell2:
     main:                Mainx.hs
-    source-dirs:         app
+    source-dirs:         windows
     ghc-options:
     - -threaded
     - -rtsopts
@@ -70,3 +71,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - quizell
+    - QuickCheck >=2.1 && <3
+    - HUnit

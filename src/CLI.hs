@@ -16,15 +16,14 @@ import Quiz
     QuestionList,
     Quiz,
     QuizError (EndOfQuiz, InvalidAnswer),
-    QuizResults (correct, total),
     answerCurrentQuestion,
     answerQuestion,
     currentAnsweredQuestion,
     currentQuestion,
-    getResults,
     isCorrect,
     nextQuestion,
   )
+import QuizResults (QuizResults (correct, taker, testFile, total), getResults)
 import System.Random (RandomGen (split))
 import System.Random.Shuffle (shuffle, shuffle')
 import Text.Printf (printf)
@@ -73,24 +72,34 @@ userAnswerQuestion putStr getLine quiz = do
       guess <- fromMaybe 0 . readMaybe <$> getLine
       return $ answerCurrentQuestion quiz guess
 
-takeQuiz :: Monad m => (String -> m ()) -> m String -> Quiz -> m QuizResults
-takeQuiz putStr getLine q = do
+type GetLine m = m String
+
+type PutStr m = (String -> m ())
+
+type GetUserName m = m String
+
+takeQuiz :: Monad m => GetUserName m -> PutStr m -> GetLine m -> String -> Quiz -> m QuizResults
+takeQuiz getUser putStr getLine file q = do
   let putStrLn = (\x -> putStr $ x ++ "\n")
   res <- userAnswerQuestion putStr getLine q
 
   case res of
     Left err -> case err of
-      EndOfQuiz -> return $ getResults q
-      InvalidAnswer -> putStrLn "Invalid Answer\nTry Again\n\n" >> takeQuiz putStr getLine q
+      EndOfQuiz -> getResults <$> getUser <*> pure file <*> pure q
+      InvalidAnswer -> putStrLn "Invalid Answer\nTry Again\n\n" >> takeQuiz getUser putStr getLine file q
     Right zip -> do
-      outputCorrectAnswerInfo putStrLn getLine zip -- Output answer info before moving to newt questions
-      takeQuiz putStr getLine (nextQuestion zip)
+      outputCorrectAnswerInfo putStrLn getLine zip -- Output answer info before moving to next questions
+      takeQuiz getUser putStr getLine file (nextQuestion zip)
 
-presentResults :: Monad m => (String -> m ()) -> QuizResults -> m ()
+presentResults :: Monad m => PutStr m -> QuizResults -> m ()
 presentResults putStrLn qr = do
   let totalQ = total qr
       correctQ = correct qr
       percentC = fromIntegral correctQ / fromIntegral totalQ * 100
+      file = testFile qr
+      user = taker qr
+  putStrLn $ "Results for: " ++ user
   putStrLn $ "Total Correct: " ++ show correctQ
   putStrLn $ "Total Questions: " ++ show totalQ
   putStrLn $ "Percentage Correct: " ++ show percentC ++ "%"
+  putStrLn $ "Test File: " ++ file

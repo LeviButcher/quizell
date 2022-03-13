@@ -19,8 +19,9 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime, getCurrentTime, nominalDay)
 import Graphics.Vty
 import qualified Graphics.Vty as V
-import Quiz (QuizError, QuizResults (QuizResults), directionalAnswerCurrentQuestion, startQuiz)
+import Quiz (QuizError, directionalAnswerCurrentQuestion, startQuiz)
 import qualified Quiz as Q
+import QuizResults
 import Text.Printf (PrintfType, printf)
 import Utils (boundWrapAround, getTimeString)
 
@@ -65,7 +66,7 @@ bottomUI =
 
 resultUI :: QuizState -> Widget ()
 resultUI (QuizState a s True e) =
-  let (QuizResults answered total correct) = Q.getResults a
+  let (QuizResults answered total correct _ _) = getResults "" "" a
       elapsedTime = fromMaybe nominalDay $ Just diffUTCTime <*> e <*> Just s
    in borderWithLabel (str "Result") . padLeftRight 2
         . vCenter

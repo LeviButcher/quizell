@@ -5,11 +5,9 @@ module MainHelpers
     trimQuiz,
     normalApp,
     transformFinishedQuiz,
-    tuiApp,
   )
 where
 
-import Brick (defaultMain)
 import qualified CLI
 import Control.Arrow (left)
 import Control.Exception (try)
@@ -17,8 +15,8 @@ import Data.Maybe (catMaybes)
 import Data.Time (diffUTCTime, getCurrentTime)
 import qualified Quiz as Q
 import qualified QuizParser as QP
+import QuizResults (QuizResults)
 import System.Random (newStdGen)
-import TUI (QuizState (..), quizApp, startState)
 import Text.Printf (printf)
 import Utils (getTimeString)
 
@@ -46,24 +44,17 @@ trimQuiz n (Right q)
   | n <= length q = Right $ take n q
   | otherwise = Left $ "Quiz only has " ++ show n ++ "Questions"
 
-normalApp :: Q.QuestionList -> IO ()
-normalApp qList = do
+normalApp :: String -> IO String -> Q.QuestionList -> IO QuizResults
+normalApp file getUserName qList = do
   let quiz = Q.startQuiz qList
   quizStart <- getCurrentTime
-  finishedQuiz <- CLI.takeQuiz putStr getLine quiz
+  finishedQuiz <- CLI.takeQuiz getUserName putStr getLine file quiz
   quizEnd <- getCurrentTime
   CLI.presentResults putStrLn finishedQuiz
   let elapsedTime = diffUTCTime quizEnd quizStart
   putStrLn $ "Total Time: " ++ getTimeString elapsedTime
+  return finishedQuiz
 
 transformFinishedQuiz :: Q.AnsweredQuestion -> Maybe (Q.Question, Int)
 transformFinishedQuiz (_, Nothing) = Nothing
 transformFinishedQuiz (x, Just y) = Just (x, y + 1)
-
-tuiApp :: Q.QuestionList -> IO ()
-tuiApp quiz = do
-  s <- startState quiz
-  finalState <- defaultMain quizApp s
-  -- let maybeAnswers = _answeredQuiz finalState
-  -- let answers = catMaybes $ transformFinishedQuiz <$> maybeAnswers
-  return ()

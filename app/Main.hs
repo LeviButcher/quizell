@@ -7,7 +7,6 @@ import MainHelpers
     normalApp,
     randomizeQuiz,
     trimQuiz,
-    tuiApp,
   )
 import Options.Applicative
   ( Parser,
@@ -29,8 +28,11 @@ import Options.Applicative
     (<**>),
   )
 import Options.Applicative.Types (Parser)
+import qualified Quiz as Q
 import qualified QuizParser as QP
-import TUI (QuizState, quizApp, startState)
+import QuizResults (QuizResults, getResults, toUnixLog)
+import System.Posix.User (getLoginName)
+import TUI (QuizState, quizApp, startState, _quiz)
 
 data ProgramArgs = ProgramArgs
   { quizPath :: String,
@@ -63,5 +65,11 @@ runProgram (ProgramArgs q l t) = do
   case pq2 of
     Left err -> putStrLn err
     Right quiz -> do
-      let prog = if t then tuiApp else normalApp
-      prog quiz
+      let prog = if t then tuiApp q getLoginName else normalApp q getLoginName
+      prog quiz >>= toUnixLog
+
+tuiApp :: String -> IO String -> Q.QuestionList -> IO QuizResults
+tuiApp q getUser quiz = do
+  s <- startState quiz
+  finalState <- defaultMain quizApp s
+  getResults q <$> getUser <*> pure (_quiz finalState)
