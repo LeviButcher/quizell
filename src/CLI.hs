@@ -15,12 +15,13 @@ import Quiz
     Question (Question),
     QuestionList,
     Quiz,
-    QuizError (EndOfQuiz, InvalidAnswer),
+    QuizError (InvalidAnswer),
     answerCurrentQuestion,
     answerQuestion,
     currentAnsweredQuestion,
     currentQuestion,
     isCorrect,
+    isEndOfQuiz,
     nextQuestion,
   )
 import QuizResults (QuizResults (correct, taker, testFile, total), getResults)
@@ -48,29 +49,24 @@ outputQuestion putStr (Question question answers _) = do
 outputCorrectAnswerInfo :: Monad m => (String -> m ()) -> m String -> Quiz -> m ()
 outputCorrectAnswerInfo putStr getLine q =
   do
-    case currentAnsweredQuestion q of
-      Nothing -> return ()
-      Just x@(Question _ _ ci, _) ->
-        if isCorrect x
-          then putStr "You answered correctly!!!"
-          else
-            putStr "You answered incorrectly"
-              >> putStr ("#" ++ show ci ++ " was the correct answer\n")
+    let x@(Question _ _ ci, _) = currentAnsweredQuestion q
+    if isCorrect x
+      then putStr "You answered correctly!!!"
+      else
+        putStr "You answered incorrectly"
+          >> putStr ("#" ++ show ci ++ " was the correct answer\n")
     >> putStr "Press Enter to continue"
     >> getLine
     >> return ()
 
 userAnswerQuestion :: Monad m => (String -> m ()) -> m String -> Quiz -> m (Either QuizError Quiz)
 userAnswerQuestion putStr getLine quiz = do
-  let curr = currentQuestion quiz
-  case curr of
-    Nothing -> return $ Left EndOfQuiz
-    Just x@(Question question answers correctI) -> do
-      let putStrLn = (\x -> putStr $ x ++ "\n")
-      outputQuestion putStr x
-      putStrLn "Enter # of answer:"
-      guess <- fromMaybe 0 . readMaybe <$> getLine
-      return $ answerCurrentQuestion quiz guess
+  let x@(Question question answers correctI) = currentQuestion quiz
+  let putStrLn = (\x -> putStr $ x ++ "\n")
+  outputQuestion putStr x
+  putStrLn "Enter # of answer:"
+  guess <- fromMaybe 0 . readMaybe <$> getLine
+  return $ answerCurrentQuestion quiz guess
 
 type GetLine m = m String
 
@@ -85,11 +81,12 @@ takeQuiz getUser putStr getLine file q = do
 
   case res of
     Left err -> case err of
-      EndOfQuiz -> getResults <$> getUser <*> pure file <*> pure q
       InvalidAnswer -> putStrLn "Invalid Answer\nTry Again\n\n" >> takeQuiz getUser putStr getLine file q
     Right zip -> do
       outputCorrectAnswerInfo putStrLn getLine zip -- Output answer info before moving to next questions
-      takeQuiz getUser putStr getLine file (nextQuestion zip)
+      if isEndOfQuiz q
+        then getResults <$> getUser <*> pure file <*> pure q
+        else takeQuiz getUser putStr getLine file (nextQuestion zip)
 
 presentResults :: Monad m => PutStr m -> QuizResults -> m ()
 presentResults putStrLn qr = do

@@ -40,16 +40,11 @@ data Navigation = LEFT | RIGHT deriving (Eq, Show)
 selectAnswer :: Q.Direction -> QuizState -> QuizState
 selectAnswer n q = q & quiz %~ (fromRight (q ^. quiz) . directionalAnswerCurrentQuestion n)
 
-startState :: Q.QuestionList -> IO QuizState
+startState :: Q.QuestionList -> IO (Maybe QuizState)
 startState q = do
   quizStart <- getCurrentTime
-  return
-    QuizState
-      { _quiz = startQuiz q,
-        _startTime = quizStart,
-        _endTime = Nothing,
-        _finishedQuiz = False
-      }
+  let mQuiz = startQuiz q
+  return $ QuizState <$> mQuiz <*> (pure quizStart) <*> (pure False) <*> Nothing
 
 topUI :: QuizState -> Widget ()
 topUI (QuizState q _ _ _) =

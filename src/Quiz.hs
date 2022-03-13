@@ -45,7 +45,7 @@ type AnsweredQuestion = (Question, Maybe Int)
 
 type Quiz = Zipper AnsweredQuestion
 
-data QuizError = InvalidAnswer | EndOfQuiz
+data QuizError = InvalidAnswer
 
 data Direction = Up | Down
 
@@ -56,7 +56,6 @@ answerQuestion q@(Question _ a ci) ai
 
 answerCurrentQuestion :: Quiz -> Int -> Either QuizError Quiz
 answerCurrentQuestion z i = do
-  if isEndOfQuiz z then Left EndOfQuiz else Right z
   answered <- answerQuestion (fst . cursor $ z) i
   Right $ replace answered z
 
@@ -71,7 +70,6 @@ directionalAnswerQuestion (q@(Question _ a _), Just x) Down
 
 directionalAnswerCurrentQuestion :: Direction -> Quiz -> Either QuizError Quiz
 directionalAnswerCurrentQuestion i z = do
-  if isEndOfQuiz z then Left EndOfQuiz else Right z
   let answered = directionalAnswerQuestion (cursor z) i
   Right $ replace answered z
 
@@ -81,8 +79,9 @@ nextQuestion = right
 prevQuestion :: Quiz -> Quiz
 prevQuestion = left
 
+-- End of quiz is when only one question is left in question zipper
 isEndOfQuiz :: Quiz -> Bool
-isEndOfQuiz = endp
+isEndOfQuiz (Zip l r) = (1 ==) . length $ l
 
 currentQuestionNumber :: Quiz -> Int
 currentQuestionNumber (Zip [] []) = 0
@@ -91,11 +90,11 @@ currentQuestionNumber (Zip l _) = length l + 1
 totalQuestions :: Quiz -> Int
 totalQuestions = length . toList
 
-currentQuestion :: Quiz -> Maybe Question
-currentQuestion q = fst <$> safeCursor q
+currentQuestion :: Quiz -> Question
+currentQuestion q = fst $ cursor q
 
-currentAnsweredQuestion :: Quiz -> Maybe AnsweredQuestion
-currentAnsweredQuestion = safeCursor
+currentAnsweredQuestion :: Quiz -> AnsweredQuestion
+currentAnsweredQuestion = cursor
 
 isCorrect :: AnsweredQuestion -> Bool
 isCorrect (_, Nothing) = False
@@ -108,8 +107,9 @@ totalAnswered = foldlz (\a z -> a + if isJust (snd $ cursor z) then 1 else 0) 0 
 totalCorrect :: Quiz -> Int
 totalCorrect = length . filter id . map isCorrect . toList
 
-startQuiz :: QuestionList -> Quiz
-startQuiz qs = fromList $ zip qs (repeat Nothing)
+startQuiz :: QuestionList -> Maybe Quiz
+startQuiz [] = Nothing
+startQuiz qs = Just $ fromList $ zip qs (repeat Nothing)
 
 isLastQuestion :: Quiz -> Bool
 isLastQuestion q = currentQuestionNumber q == totalQuestions q

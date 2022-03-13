@@ -40,6 +40,9 @@ toSystemLog file q =
         appendLog = appendFile savePath ("\n" ++ show q) -- Should switch this to use correct line delimiters
     createLog <|> appendLog
 
-toUnixLog, toWindowsLog :: QuizResults -> IO ()
-toUnixLog = toSystemLog $ quizellLog
-toWindowsLog = toSystemLog $ quizellLog
+-- Run ghcid to auto compile project
+
+toUnixLog, toWindowsLog, toLog :: QuizResults -> IO ()
+toUnixLog = toSystemLog quizellLog
+toWindowsLog = toSystemLog quizellLog
+toLog = toSystemLog quizellLog

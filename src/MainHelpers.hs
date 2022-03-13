@@ -44,16 +44,20 @@ trimQuiz n (Right q)
   | n <= length q = Right $ take n q
   | otherwise = Left $ "Quiz only has " ++ show n ++ "Questions"
 
-normalApp :: String -> IO String -> Q.QuestionList -> IO QuizResults
+normalApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QuizResults)
 normalApp file getUserName qList = do
-  let quiz = Q.startQuiz qList
-  quizStart <- getCurrentTime
-  finishedQuiz <- CLI.takeQuiz getUserName putStr getLine file quiz
-  quizEnd <- getCurrentTime
-  CLI.presentResults putStrLn finishedQuiz
-  let elapsedTime = diffUTCTime quizEnd quizStart
-  putStrLn $ "Total Time: " ++ getTimeString elapsedTime
-  return finishedQuiz
+  let maybeQ = Q.startQuiz qList
+
+  case maybeQ of
+    Nothing -> putStrLn "Quiz List was Empty" >> return Nothing
+    Just quiz -> do
+      quizStart <- getCurrentTime
+      finishedQuiz <- CLI.takeQuiz getUserName putStr getLine file quiz
+      quizEnd <- getCurrentTime
+      CLI.presentResults putStrLn finishedQuiz
+      let elapsedTime = diffUTCTime quizEnd quizStart
+      putStrLn $ "Total Time: " ++ getTimeString elapsedTime
+      return . Just $ finishedQuiz
 
 transformFinishedQuiz :: Q.AnsweredQuestion -> Maybe (Q.Question, Int)
 transformFinishedQuiz (_, Nothing) = Nothing

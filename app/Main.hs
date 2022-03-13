@@ -66,10 +66,16 @@ runProgram (ProgramArgs q l t) = do
     Left err -> putStrLn err
     Right quiz -> do
       let prog = if t then tuiApp q getLoginName else normalApp q getLoginName
-      prog quiz >>= toUnixLog
+      (prog quiz >>= (\x -> sequence $ toUnixLog <$> x)) *> pure ()
 
-tuiApp :: String -> IO String -> Q.QuestionList -> IO QuizResults
+tuiApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QuizResults)
 tuiApp q getUser quiz = do
-  s <- startState quiz
-  finalState <- defaultMain quizApp s
-  getResults q <$> getUser <*> pure (_quiz finalState)
+  mS <- startState quiz
+  sequence
+    ( (flip fmap)
+        mS
+        ( \s -> do
+            finalState <- defaultMain quizApp s
+            getResults q <$> getUser <*> pure (_quiz finalState)
+        )
+    )
