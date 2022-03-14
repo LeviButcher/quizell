@@ -32,6 +32,7 @@ dependencies:
 - ListZipper
 - directory
 - filepath
+- async
 
 library:
   source-dirs: src
