@@ -2,17 +2,15 @@ module QuizResults where
 
 import Control.Applicative (Alternative ((<|>)))
 import qualified Quiz as Q
-import System.Directory (createDirectory, createDirectoryIfMissing, getAppUserDataDirectory)
+import System.Directory (createDirectory, createDirectoryIfMissing, doesFileExist, getAppUserDataDirectory)
 import System.FilePath.Posix (takeDirectory)
+import Utils (Log (readLog, toLog))
 
 type Taker = String
 
 type TestFile = String
 
-quizellLog :: String
-quizellLog = "quizell/quizell.log"
-
--- Should add time taken... :/
+-- TODO: add time taken
 data QuizResults = QuizResults
   { answered :: Int,
     total :: Int,
@@ -32,15 +30,37 @@ getResults t tf q =
       testFile = tf
     }
 
-toSystemLog :: String -> QuizResults -> IO ()
-toSystemLog file q =
-  do
-    savePath <- getAppUserDataDirectory file
-    let createLog = createDirectory (takeDirectory savePath) *> writeFile savePath (show q)
-        appendLog = appendFile savePath ("\n" ++ show q) -- Should switch this to use correct line delimiters
-    createLog <|> appendLog
+-- Don't want to override the Show typeclass
+showResult :: QuizResults -> String
+showResult (QuizResults a t c user tFile) =
+  unlines
+    [ "user: " ++ user,
+      "file: " ++ tFile,
+      "correct: " ++ show c ++ "/" ++ show t
+    ]
 
-toUnixLog, toWindowsLog, toLog :: QuizResults -> IO ()
-toUnixLog = toSystemLog quizellLog
-toWindowsLog = toSystemLog quizellLog
-toLog = toSystemLog quizellLog
+showResults :: [QuizResults] -> String
+showResults = unlines . map showResult
+
+quizellLog :: String
+quizellLog = "quizell"
+
+resultsLog :: String
+resultsLog = "results.log"
+
+instance Log QuizResults where
+  toLog res = do
+    saveDir <- getAppUserDataDirectory quizellLog
+
+    let filePath = saveDir ++ "/" ++ resultsLog
+        createLog = writeFile filePath (show res)
+        appendLog = appendFile filePath ("\n" ++ show res)
+
+    createDirectoryIfMissing True saveDir
+    fExist <- doesFileExist filePath
+    if fExist then appendLog else createLog
+
+  readLog = do
+    saveDir <- getAppUserDataDirectory quizellLog
+    let filePath = saveDir ++ "/" ++ resultsLog
+    map read . lines <$> readFile filePath <|> pure []

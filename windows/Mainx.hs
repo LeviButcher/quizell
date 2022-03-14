@@ -8,25 +8,23 @@ import Control.Lens ()
 import Control.Monad (void)
 import Data.Aeson ()
 import qualified Data.Bifunctor
+import qualified Data.Functor
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Semigroup (Option)
 import Data.Time (diffUTCTime, getCurrentTime)
 import MainHelpers
-  ( getParsedQuiz,
-    getQuizFile,
+  ( getQuestionList,
     normalApp,
-    randomizeQuiz,
-    trimQuiz,
   )
 import Options.Applicative (auto, execParser, fullDesc, header, help, helper, info, long, metavar, option, progDesc, short, strOption, switch, value, (<**>))
 import Options.Applicative.Types (Parser)
 import qualified QuestionParser as QP
-import QuizResults (toWindowsLog)
 import System.Environment (getArgs)
 import System.Random (newStdGen)
 import qualified Text.ParserCombinators.Parsec as P
 import Text.Printf (printf)
 import Text.Read (readEither, readMaybe)
+import Utils (Log (toLog))
 
 data ProgramArgs = ProgramArgs
   { quizPath :: String,
@@ -52,10 +50,9 @@ main = runProgram =<< execParser opts
 
 runProgram :: ProgramArgs -> IO ()
 runProgram (ProgramArgs q l) = do
-  pq <- getQuizFile q >>= getParsedQuiz >>= randomizeQuiz
-  let pq2 = trimQuiz l pq
-  case pq2 of
+  possibleList <- getQuestionList q l
+  case possibleList of
     Left err -> putStrLn err
     Right quiz -> do
       res <- normalApp q (pure "") quiz
-      (sequence $ pure toWindowsLog <*> res) *> return ()
+      sequence (toLog <$> res) Data.Functor.$> ()

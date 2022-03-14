@@ -1,10 +1,18 @@
 [x] Fix UI wrap when submitting quiz (tui)
 [x] Show quiz time (tui)
-[ ] Log File of past performance
+[x] Log File of past performance
     - This record must identify (reliably) who took the test, what input
     file was used, how many questions were asked and what the score was. 
-[ ] Save Log in "expected" place based on environment
-
+[x] Save/Read Log in "expected" place based on environment
+    - [x] Unix Location
+    - [x] Windows Location
+[x] Show Users Pasted QuizResults
+[ ] Time passed test taking
+    - Should close quiz after alloted time if not finished
+    - Might be able to sleep a process for alloted time then have it kill the program
+- [] Implement Windows based screen menu (Not use cli parameters)
+- [] Check all implementation on Windows
+    - [] Line delinemters may mess up program
 
 Windows Requirements
 - Support Configuration via a [MENU]

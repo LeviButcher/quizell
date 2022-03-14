@@ -1,4 +1,4 @@
-module Utils (allTrue, joinDelim, boundWrapAround, getTimeString) where
+module Utils (allTrue, joinDelim, boundWrapAround, getTimeString, Log (..)) where
 
 import Data.Time (DiffTime, NominalDiffTime, defaultTimeLocale, formatTime)
 
@@ -18,3 +18,7 @@ boundWrapAround f l u i
 
 getTimeString :: NominalDiffTime -> String
 getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
+
+class Log a where
+  toLog :: a -> IO ()
+  readLog :: IO [a]

@@ -68,7 +68,7 @@ startState :: (Q.Quiz q) => Q.QuestionList -> IO (Maybe (QuizState q))
 startState q = do
   quizStart <- getCurrentTime
   let mQuiz = Q.createQuiz q
-  return $ QuizState <$> mQuiz <*> (pure quizStart) <*> (pure False) <*> Nothing
+  return $ QuizState <$> mQuiz <*> pure quizStart <*> pure False <*> Just Nothing
 
 topUI :: (Q.Quiz q) => QuizState q -> Widget ()
 topUI (QuizState q _ _ _) =
@@ -118,7 +118,7 @@ questionUI (QuizState quiz s done _) =
 
 -- Need to handle end of zip here
 moveQuestion :: (Q.Quiz q) => Navigation -> QuizState q -> QuizState q
-moveQuestion RIGHT q = q { quiz = (\l -> if Q.hasNext l then l else Q.next l) . quiz $ q}
+moveQuestion RIGHT q = q { quiz = (\l -> if Q.hasNext l then Q.next l else l) . quiz $ q}
 moveQuestion LEFT q = q {quiz = Q.prev . quiz $ q}
 
 drawUI :: (Q.Quiz q) => QuizState q -> [Widget ()]

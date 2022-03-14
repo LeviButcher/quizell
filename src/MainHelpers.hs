@@ -1,45 +1,44 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 module MainHelpers
-  ( getQuizFile,
-    getParsedQuiz,
-    randomizeQuiz,
-    trimQuiz,
-    normalApp,
-    transformFinishedQuiz,
+  ( normalApp,
+    getQuestionList,
+    printUserLogs,
   )
 where
 
 import qualified CLI
+import Control.Applicative ((<|>))
 import Control.Arrow (left)
 import Control.Exception (try)
+import Data.Bifunctor (first)
+import Data.Functor ((<&>))
 import Data.Maybe (catMaybes)
 import Data.Time (diffUTCTime, getCurrentTime)
 import qualified QuestionParser as QP
 import qualified Quiz as Q
 import QuizResults (QuizResults)
+import qualified QuizResults as QR
 import System.Random (newStdGen)
 import Text.Printf (printf)
-import Utils (getTimeString)
-import ZipperQuiz
+import Utils (Log (readLog), getTimeString)
+import ZipperQuiz (ZipperQuiz)
 
 getQuizFile :: String -> IO (Either String String)
 getQuizFile quizPath = do
   readResult <- try (readFile quizPath) :: IO (Either IOError String)
   return $ left (const $ "File entered does not exist: " ++ quizPath) readResult
 
-getParsedQuiz :: Either String String -> IO (Either String Q.QuestionList)
-getParsedQuiz x = return $ do
-  r <- x
-  left (const "Failed to parse file correctly\nPlease try again\n") $ QP.parseQuestions r
+getParsedQuiz :: String -> Either String Q.QuestionList
+getParsedQuiz = first (const "Failed to parse file correctly\nPlease try again\n") . QP.parseQuestions
 
-randomizeQuiz :: Either String Q.QuestionList -> IO (Either String Q.QuestionList)
-randomizeQuiz (Right quiz) = do
+randomizeQuiz :: Q.QuestionList -> IO Q.QuestionList
+randomizeQuiz qList = do
   rng <- newStdGen
-  return . Right $ Q.shuffleQuestions rng quiz
-randomizeQuiz l = return l
+  return $ Q.shuffleQuestions rng qList
 
-trimQuiz :: Int -> Either String Q.QuestionList -> Either String Q.QuestionList
-trimQuiz _ (Left l) = Left l
-trimQuiz n (Right q)
+trimQuiz :: Int -> Q.QuestionList -> Either String Q.QuestionList
+trimQuiz n q
   | n < 0 = Left $ show n ++ " is a invalid number of questions"
   | n == 0 = Right q
   | n <= length q = Right $ take n q
@@ -63,3 +62,16 @@ normalApp file getUserName qList = do
 transformFinishedQuiz :: Q.AnsweredQuestion -> Maybe (Q.Question, Int)
 transformFinishedQuiz (_, Nothing) = Nothing
 transformFinishedQuiz (x, Just y) = Just (x, y + 1)
+
+printUserLogs :: IO String -> IO ()
+printUserLogs getName = do
+  user <- getName
+  logs <- readLog
+  let userLogs = filter ((user ==) . QR.taker) logs
+  putStrLn $ QR.showResults userLogs
+
+getQuestionList :: FilePath -> Int -> IO (Either String Q.QuestionList)
+getQuestionList file n = do
+  txt <- getQuizFile file
+  randomQ <- sequence $ txt >>= getParsedQuiz <&> randomizeQuiz
+  return $ randomQ >>= trimQuiz n

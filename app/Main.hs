@@ -1,13 +1,13 @@
 module Main where
 
 import Brick (defaultMain)
+import qualified Control.Monad as Data.Foldable
+import Data.Functor ((<&>))
 import qualified Data.Functor
 import MainHelpers
-  ( getParsedQuiz,
-    getQuizFile,
+  ( getQuestionList,
     normalApp,
-    randomizeQuiz,
-    trimQuiz,
+    printUserLogs,
   )
 import Options.Applicative
   ( Parser,
@@ -30,16 +30,19 @@ import Options.Applicative
   )
 import Options.Applicative.Types (Parser)
 import qualified QuestionParser as QP
+import Quiz (QuestionList)
 import qualified Quiz as Q
-import QuizResults (QuizResults, getResults, toUnixLog)
+import qualified QuizResults as QR
 import System.Posix.User (getLoginName)
 import TUI (QuizState (..), quizApp, startState)
+import Utils (Log (readLog), toLog)
 import ZipperQuiz (ZipperQuiz)
 
 data ProgramArgs = ProgramArgs
   { quizPath :: String,
     quizLength :: Int,
-    tuiOn :: Bool
+    tuiOn :: Bool,
+    showResults :: Bool
   }
 
 parseArgs :: Parser ProgramArgs
@@ -48,6 +51,7 @@ parseArgs =
     <$> strOption (long "file" <> short 'f' <> metavar "Quiz File Path" <> help "Full or Relative path to Quiz file")
     <*> option auto (long "length" <> short 'l' <> help "Number of questions to use" <> metavar "INT" <> value 0)
     <*> switch (long "tui" <> short 't' <> help "Turn on TUI mode (Works only on Unix)")
+    <*> switch (long "results" <> short 'r' <> help "Show your past quiz results")
 
 main :: IO ()
 main = runProgram =<< execParser opts
@@ -61,21 +65,26 @@ main = runProgram =<< execParser opts
         )
 
 runProgram :: ProgramArgs -> IO ()
-runProgram (ProgramArgs q l t) = do
-  pq <- getQuizFile q >>= getParsedQuiz >>= randomizeQuiz
-  let pq2 = trimQuiz l pq
-  case pq2 of
-    Left err -> putStrLn err
-    Right quiz -> do
-      let prog = if t then tuiApp q getLoginName else normalApp q getLoginName
-      (prog quiz >>= (\x -> sequence $ toUnixLog <$> x)) Data.Functor.$> ()
+runProgram (ProgramArgs q l t r) = do
+  if r
+    then printUserLogs getLoginName
+    else
+      ( do
+          qList <- getQuestionList q l
+          case qList of
+            Left err -> putStrLn err
+            Right quiz -> do
+              let prog = if t then tuiApp else normalApp
+              res <- prog q getLoginName quiz
+              Data.Foldable.forM_ res toLog
+      )
 
-tuiApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QuizResults)
+tuiApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QR.QuizResults)
 tuiApp q getUser questionList = do
-  mS <- startState questionList :: IO (Maybe (QuizState ZipperQuiz))
-  mapM
-    ( \s -> do
-        finalState <- defaultMain quizApp s
-        getResults q <$> getUser <*> pure (quiz finalState)
-    )
-    mS
+  mQuiz <- startState questionList :: IO (Maybe (QuizState ZipperQuiz))
+  sequence $
+    mQuiz
+      <&> ( \sQuiz -> do
+              finalState <- defaultMain quizApp sQuiz
+              QR.getResults q <$> getUser <*> pure (quiz finalState)
+          )
