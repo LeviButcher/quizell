@@ -7,11 +7,7 @@ import Control.Exception (Exception, throw)
 import qualified Control.Monad as Data.Foldable
 import Data.Functor ((<&>))
 import qualified Data.Functor
-import MainHelpers
-  ( getQuestionList,
-    normalApp,
-    printUserLogs,
-  )
+import MainHelpers (ProgramArgs (..), normalApp, runQuizell)
 import Options.Applicative
   ( Parser,
     auto,
@@ -41,14 +37,6 @@ import TUI (QuizState (..), quizApp, startState)
 import Utils (Log (readLog), toLog)
 import ZipperQuiz (ZipperQuiz)
 
-data ProgramArgs = ProgramArgs
-  { quizPath :: String,
-    quizLength :: Int,
-    tuiOn :: Bool,
-    showResults :: Bool,
-    time :: Int
-  }
-
 parseArgs :: Parser ProgramArgs
 parseArgs =
   ProgramArgs
@@ -69,44 +57,15 @@ main = runProgram =<< execParser opts
             <> header "quizell"
         )
 
-data QuizException = OutOfTime deriving (Show)
-
-instance Exception QuizException
-
-secondsToMicro x = x * 1000000
-
-quizStopper :: Int -> IO ()
-quizStopper n = do
-  threadDelay . secondsToMicro $ n
-  throw OutOfTime
-
 runProgram :: ProgramArgs -> IO ()
-runProgram (ProgramArgs q l t r time) = do
-  res <- race (quizStopper time) actualProgram
-  case res of
-    Left _ -> putStrLn "TIMES UP, TRY NEXT TIME KID"
-    Right _ -> putStrLn "Thank you for using quizell"
-  where
-    actualProgram = do
-      if r
-        then printUserLogs getLoginName
-        else
-          ( do
-              qList <- getQuestionList q l
-              case qList of
-                Left err -> putStrLn err
-                Right quiz -> do
-                  let prog = if t then tuiApp else normalApp
-                  res <- prog q getLoginName quiz
-                  Data.Foldable.forM_ res toLog
-          )
+runProgram args = runQuizell args getLoginName $ if tuiOn args then tuiApp else normalApp
 
-tuiApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QR.QuizResults)
-tuiApp q getUser questionList = do
+tuiApp :: ProgramArgs -> IO String -> Q.QuestionList -> IO (Maybe QR.QuizResults)
+tuiApp args getUser questionList = do
   mQuiz <- startState questionList :: IO (Maybe (QuizState ZipperQuiz))
   sequence $
     mQuiz
-      <&> ( \sQuiz -> do
-              finalState <- defaultMain quizApp sQuiz
-              QR.getResults q <$> getUser <*> pure (quiz finalState)
+      <&> ( \start -> do
+              finalState <- defaultMain quizApp start
+              QR.getResults (quizPath args) <$> getUser <*> pure (quiz finalState)
           )

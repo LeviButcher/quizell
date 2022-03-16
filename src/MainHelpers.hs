@@ -1,19 +1,12 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+module MainHelpers (ProgramArgs (..), runQuizell, normalApp) where
 
-module MainHelpers
-  ( normalApp,
-    getQuestionList,
-    printUserLogs,
-  )
-where
-
+import CLI (getQuestionList, printUserLogs)
 import qualified CLI
-import Control.Applicative ((<|>))
-import Control.Arrow (left)
-import Control.Exception (try)
-import Data.Bifunctor (first)
-import Data.Functor ((<&>))
-import Data.Maybe (catMaybes)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (race)
+import Control.Exception (Exception, throw)
+import qualified Control.Monad as Data.Foldable
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Time (diffUTCTime, getCurrentTime)
 import qualified QuestionParser as QP
 import qualified Quiz as Q
@@ -21,57 +14,64 @@ import QuizResults (QuizResults)
 import qualified QuizResults as QR
 import System.Random (newStdGen)
 import Text.Printf (printf)
-import Utils (Log (readLog), getTimeString)
+import Text.Read (readMaybe)
+import Utils (Log (readLog, toLog), getTimeString)
 import ZipperQuiz (ZipperQuiz)
 
-getQuizFile :: String -> IO (Either String String)
-getQuizFile quizPath = do
-  readResult <- try (readFile quizPath) :: IO (Either IOError String)
-  return $ left (const $ "File entered does not exist: " ++ quizPath) readResult
+data ProgramArgs = ProgramArgs
+  { quizPath :: String,
+    quizLength :: Int,
+    tuiOn :: Bool,
+    showResults :: Bool,
+    time :: Int
+  }
+  deriving (Show)
 
-getParsedQuiz :: String -> Either String Q.QuestionList
-getParsedQuiz = first (const "Failed to parse file correctly\nPlease try again\n") . QP.parseQuestions
+type QuizellApp = ProgramArgs -> IO String -> Q.QuestionList -> IO (Maybe QR.QuizResults)
 
-randomizeQuiz :: Q.QuestionList -> IO Q.QuestionList
-randomizeQuiz qList = do
-  rng <- newStdGen
-  return $ Q.shuffleQuestions rng qList
+data QuizException = OutOfTime deriving (Show)
 
-trimQuiz :: Int -> Q.QuestionList -> Either String Q.QuestionList
-trimQuiz n q
-  | n < 0 = Left $ show n ++ " is a invalid number of questions"
-  | n == 0 = Right q
-  | n <= length q = Right $ take n q
-  | otherwise = Left $ "Quiz only has " ++ show n ++ "Questions"
+instance Exception QuizException
 
-normalApp :: String -> IO String -> Q.QuestionList -> IO (Maybe QuizResults)
-normalApp file getUserName qList = do
+quizStopper :: Int -> IO ()
+quizStopper n = do
+  threadDelay . secondsToMicro $ n
+  throw OutOfTime
+
+secondsToMicro :: Num a => a -> a
+secondsToMicro x = x * 1000000
+
+runQuizell :: ProgramArgs -> IO String -> QuizellApp -> IO ()
+runQuizell args@(ProgramArgs q l t r time) getName quizell = do
+  res <- if time <= 0 then Right <$> actualProgram else race (quizStopper time) actualProgram
+  case res of
+    Left _ -> putStrLn "TIMES UP, TRY NEXT TIME KID"
+    Right _ -> putStrLn "Thank you for using quizell"
+  where
+    actualProgram = do
+      if r
+        then printUserLogs getName
+        else
+          ( do
+              qList <- getQuestionList q l
+              case qList of
+                Left err -> putStrLn err
+                Right quiz -> do
+                  res <- quizell args getName quiz
+                  Data.Foldable.forM_ res toLog
+          )
+
+normalApp :: ProgramArgs -> IO String -> Q.QuestionList -> IO (Maybe QuizResults)
+normalApp args getUserName qList = do
   let maybeQ = Q.createQuiz qList :: Maybe ZipperQuiz
 
   case maybeQ of
     Nothing -> putStrLn "Quiz List was Empty" >> return Nothing
     Just quiz -> do
       quizStart <- getCurrentTime
-      finishedQuiz <- CLI.takeQuiz getUserName putStr getLine file quiz
+      finishedQuiz <- CLI.takeQuiz getUserName (quizPath args) quiz
       quizEnd <- getCurrentTime
-      CLI.presentResults putStrLn finishedQuiz
+      CLI.presentResults finishedQuiz
       let elapsedTime = diffUTCTime quizEnd quizStart
       putStrLn $ "Total Time: " ++ getTimeString elapsedTime
       return . Just $ finishedQuiz
-
-transformFinishedQuiz :: Q.AnsweredQuestion -> Maybe (Q.Question, Int)
-transformFinishedQuiz (_, Nothing) = Nothing
-transformFinishedQuiz (x, Just y) = Just (x, y + 1)
-
-printUserLogs :: IO String -> IO ()
-printUserLogs getName = do
-  user <- getName
-  logs <- readLog
-  let userLogs = filter ((user ==) . QR.taker) logs
-  putStrLn $ QR.showResults userLogs
-
-getQuestionList :: FilePath -> Int -> IO (Either String Q.QuestionList)
-getQuestionList file n = do
-  txt <- getQuizFile file
-  randomQ <- sequence $ txt >>= getParsedQuiz <&> randomizeQuiz
-  return $ randomQ >>= trimQuiz n

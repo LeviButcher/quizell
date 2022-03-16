@@ -64,7 +64,7 @@ instance Quiz ZipperQuiz where
 answerQuestion :: Question -> Int -> Either QuizError AnsweredQuestion
 answerQuestion q@(Question _ a ci) ai
   | ai < 0 || ai > length a = Left InvalidAnswer
-  | otherwise = Right (q, pure ai)
+  | otherwise = Right (q, Just ai)
 
 directionalAnswerQuestion :: AnsweredQuestion -> Direction -> AnsweredQuestion
 directionalAnswerQuestion (q, Nothing) _ = (q, Just 1)

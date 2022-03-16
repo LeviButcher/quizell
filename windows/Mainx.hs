@@ -13,46 +13,61 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Semigroup (Option)
 import Data.Time (diffUTCTime, getCurrentTime)
 import MainHelpers
-  ( getQuestionList,
+  ( ProgramArgs (..),
     normalApp,
+    runQuizell,
   )
 import Options.Applicative (auto, execParser, fullDesc, header, help, helper, info, long, metavar, option, progDesc, short, strOption, switch, value, (<**>))
 import Options.Applicative.Types (Parser)
 import qualified QuestionParser as QP
-import System.Environment (getArgs)
+import System.Environment (getArgs, getEnv)
 import System.Random (newStdGen)
 import qualified Text.ParserCombinators.Parsec as P
 import Text.Printf (printf)
 import Text.Read (readEither, readMaybe)
-import Utils (Log (toLog))
+import Utils (Log (toLog), getNumberOrDefault, numberStrings)
 
-data ProgramArgs = ProgramArgs
-  { quizPath :: String,
-    quizLength :: Int
-  }
+setQuizFile :: IO String
+setQuizFile = do
+  putStrLn "Enter Path to quiz file:"
+  getLine
 
-parseArgs :: Parser ProgramArgs
-parseArgs =
-  ProgramArgs
-    <$> strOption (long "file" <> short 'f' <> metavar "Quiz File Path" <> help "Full or Relative path to Quiz file")
-    <*> option auto (long "length" <> short 'l' <> help "Number of questions to use" <> metavar "INT" <> value 0)
+setQuizTimer :: IO Int
+setQuizTimer = do
+  putStrLn "Enter Amount of time for quiz in seconds (0 is infinity):"
+  getNumberOrDefault 0
 
 main :: IO ()
-main = runProgram =<< execParser opts
+main = getDefaultQuizellArgs >>= setup >>= \x -> runQuizell x getWindowsUserName normalApp
   where
-    opts =
-      info
-        (parseArgs <**> helper)
-        ( fullDesc
-            <> progDesc "quizell - a CLI for quiz taking"
-            <> header "quizell"
-        )
+    setup args = do
+      putStrLn "QUIZELL - WINDOWS\n"
+      putStrLn $ numberStrings ["Set QuizFile", "Set Timer", "Show My Past Results", "Run"]
+      putStrLn $ "Current Config: " ++ show args
+      putStrLn "Enter Menu Option Number:"
+      ent <- getNumberOrDefault (-1)
+      case ent of
+        1 -> do
+          file <- setQuizFile
+          setup $ args {quizPath = file}
+        2 -> do
+          qTime <- setQuizTimer
+          setup $ args {time = qTime}
+        3 -> do
+          return $ args {showResults = True}
+        4 -> return args
+        _ -> putStrLn "Invalid Menu Option" >> setup args
 
-runProgram :: ProgramArgs -> IO ()
-runProgram (ProgramArgs q l) = do
-  possibleList <- getQuestionList q l
-  case possibleList of
-    Left err -> putStrLn err
-    Right quiz -> do
-      res <- normalApp q (pure "") quiz
-      sequence (toLog <$> res) Data.Functor.$> ()
+getWindowsUserName :: IO String
+getWindowsUserName = getEnv "USERNAME"
+
+getDefaultQuizellArgs :: IO ProgramArgs
+getDefaultQuizellArgs =
+  return
+    ProgramArgs
+      { quizPath = "",
+        quizLength = 0,
+        showResults = False,
+        time = -1,
+        tuiOn = False
+      }

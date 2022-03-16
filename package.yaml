@@ -33,6 +33,7 @@ dependencies:
 - directory
 - filepath
 - async
+- ansi-terminal
 
 library:
   source-dirs: src

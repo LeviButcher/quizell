@@ -1,6 +1,8 @@
-module Utils (allTrue, joinDelim, boundWrapAround, getTimeString, Log (..)) where
+module Utils where
 
+import Data.Maybe (fromMaybe)
 import Data.Time (DiffTime, NominalDiffTime, defaultTimeLocale, formatTime)
+import Text.Read (readMaybe)
 
 allTrue :: [Bool] -> Bool
 allTrue = all (== True)
@@ -22,3 +24,9 @@ getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
 class Log a where
   toLog :: a -> IO ()
   readLog :: IO [a]
+
+numberStrings :: [String] -> String
+numberStrings s = unlines $ (\(a, b) -> concat [show a, ") ", b]) <$> zip [1 ..] s
+
+getNumberOrDefault :: Int -> IO Int
+getNumberOrDefault d = fromMaybe d . readMaybe <$> getLine
