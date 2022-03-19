@@ -4,6 +4,7 @@
 
 module Quiz (Quiz (..), shuffleQuestions, toWindowsFileString, toPOSIXFileString, Question (..), QuestionList, AnsweredQuestion, Direction (..), QuizError (..)) where
 
+import Control.Monad.State.Lazy
 import Data.Aeson (FromJSON (parseJSON), Value (Object), (.:))
 import Data.Aeson.Types (FromJSON (parseJSON))
 import GHC.Generics (Generic)

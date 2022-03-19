@@ -45,6 +45,7 @@ library
     , directory
     , filepath
     , lens
+    , mtl
     , optparse-applicative
     , parsec
     , random
@@ -71,6 +72,7 @@ executable quizell
     , directory
     , filepath
     , lens
+    , mtl
     , optparse-applicative
     , parsec
     , quizell
@@ -98,6 +100,7 @@ executable quizell2
     , directory
     , filepath
     , lens
+    , mtl
     , optparse-applicative
     , parsec
     , quizell
@@ -127,6 +130,7 @@ test-suite quizell-test
     , directory
     , filepath
     , lens
+    , mtl
     , optparse-applicative
     , parsec
     , quizell

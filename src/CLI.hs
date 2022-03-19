@@ -4,6 +4,7 @@
 module CLI where
 
 import Control.Arrow (left)
+import Control.Concurrent.MVar (MVar, putMVar, takeMVar)
 import Control.Exception (try)
 import Control.Monad (void)
 import Data.Aeson (FromJSON (parseJSON), Value (Object), (.:))
@@ -21,28 +22,9 @@ import System.Random (RandomGen (split), newStdGen)
 import System.Random.Shuffle (shuffle, shuffle')
 import Text.Printf (printf)
 import Text.Read (readMaybe)
-import Utils (Log (readLog), allTrue, getNumberOrDefault, joinDelim, numberStrings)
+import Utils (Log (readLog), allTrue, errorText, getNumberOrDefault, goodNewsText, joinDelim, numberStrings, resetScreen)
 
 type GetUserName m = m String
-
-resetScreen :: IO ()
-resetScreen = setSGR [Reset] >> clearScreen >> setCursorPosition 0 0
-
-prettyText :: [SGR] -> (String -> IO ()) -> String -> IO ()
-prettyText conf f x = do
-  setSGR conf
-  f x
-  setSGR [Reset]
-  return ()
-
-errorText :: (String -> IO ()) -> String -> IO ()
-errorText = prettyText [SetColor Foreground Vivid Red]
-
-infoText :: (String -> IO ()) -> String -> IO ()
-infoText = prettyText [SetColor Foreground Vivid Blue]
-
-goodNewsText :: (String -> IO ()) -> String -> IO ()
-goodNewsText = prettyText [SetColor Foreground Vivid Green]
 
 formattedQuestion :: Q.Question -> String
 formattedQuestion (Q.Question question answers _) =
@@ -83,9 +65,20 @@ takeQuiz getUser file quiz = do
   newState <- askQuestionUntilValid quiz
 
   outputCorrectAnswer newState
-  if Q.hasNext quiz
+  if Q.hasNext newState
     then takeQuiz getUser file (Q.next newState)
     else getResults <$> getUser <*> pure file <*> pure newState
+
+takeQuizAsync :: (Q.Quiz q) => MVar q -> IO (MVar q)
+takeQuizAsync mvarQ = do
+  resetScreen
+  quiz <- takeMVar mvarQ
+  newState <- askQuestionUntilValid quiz
+  outputCorrectAnswer newState
+  putMVar mvarQ newState
+  if Q.hasNext newState
+    then takeQuizAsync mvarQ
+    else return mvarQ
 
 presentResults :: QuizResults -> IO ()
 presentResults qr = do
@@ -117,8 +110,10 @@ trimQuiz :: Int -> Q.QuestionList -> Either String Q.QuestionList
 trimQuiz n q
   | n < 0 = Left $ show n ++ " is a invalid number of questions"
   | n == 0 = Right q
-  | n <= length q = Right $ take n q
-  | otherwise = Left $ "Quiz only has " ++ show n ++ "Questions"
+  | n <= qLength = Right $ take n q
+  | otherwise = Left $ "Quiz only has " ++ show qLength ++ " Questions"
+  where
+    qLength = length q
 
 printUserLogs :: IO String -> IO ()
 printUserLogs getName = do
