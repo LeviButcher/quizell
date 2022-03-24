@@ -35,7 +35,6 @@ import qualified QuizResults as QR
 import System.Posix.User (getLoginName)
 import TUI (QuizState (..), quizApp, startState)
 import Utils (Log (readLog), toLog)
-import ZipperQuiz (ZipperQuiz)
 
 parseArgs :: Parser ProgramArgs
 parseArgs =
@@ -60,12 +59,8 @@ main = runProgram =<< execParser opts
 runProgram :: ProgramArgs -> IO ()
 runProgram args = runQuizell args getLoginName $ if tuiOn args then tuiApp else normalApp
 
-tuiApp :: ProgramArgs -> IO String -> Q.QuestionList -> IO (Maybe QR.QuizResults)
-tuiApp args getUser questionList = do
-  mQuiz <- startState questionList :: IO (Maybe (QuizState ZipperQuiz))
-  sequence $
-    mQuiz
-      <&> ( \start -> do
-              finalState <- defaultMain quizApp start
-              QR.getResults (quizPath args) <$> getUser <*> pure (quiz finalState)
-          )
+tuiApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz
+tuiApp args questionList = do
+  mQuiz <- startState questionList
+  res <- defaultMain quizApp mQuiz
+  return (quiz res)

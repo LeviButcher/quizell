@@ -1,6 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE DatatypeContexts #-}
-
 module TUI
   ( quizApp,
     startState,
@@ -9,48 +6,50 @@ module TUI
 where
 
 import Brick
-    ( attrMap,
-      attrName,
-      continue,
-      halt,
-      neverShowCursor,
-      suspendAndResume,
-      fg,
-      (<+>),
-      (<=>),
-      emptyWidget,
-      hBox,
-      hLimit,
-      padLeftRight,
-      str,
-      strWrap,
-      vBox,
-      withAttr,
-      AttrMap,
-      App(..),
-      EventM,
-      Widget,
-      BrickEvent(VtyEvent),
-      Next )
-import Brick.Widgets.Border ( border, borderWithLabel )
-import Brick.Widgets.Center ( center, hCenter, vCenter )
-import Control.Lens ( (&), (%~), (.~), element )
+  ( App (..),
+    AttrMap,
+    BrickEvent (VtyEvent),
+    EventM,
+    Next,
+    Widget,
+    attrMap,
+    attrName,
+    continue,
+    emptyWidget,
+    fg,
+    hBox,
+    hLimit,
+    halt,
+    neverShowCursor,
+    padLeftRight,
+    str,
+    strWrap,
+    suspendAndResume,
+    vBox,
+    withAttr,
+    (<+>),
+    (<=>),
+  )
+import Brick.Widgets.Border (border, borderWithLabel)
+import Brick.Widgets.Center (center, hCenter, vCenter)
+import Control.Lens (element, (%~), (&), (.~))
+import Control.Monad.State.Lazy (StateT (runStateT), evalStateT, execStateT)
 import qualified Data.Bifunctor
 import Data.Either (fromRight)
+import Data.Functor.Identity
 import Data.List (group, intersperse)
-import Data.List.Zipper (cursor)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime, getCurrentTime, nominalDay)
-import Graphics.Vty ( defAttr, blue, green, red )
+import Graphics.Vty (blue, defAttr, green, red)
 import qualified Graphics.Vty as V
 import qualified Quiz as Q
-import QuizResults ( QuizResults(QuizResults), getResults )
+import QuizResults (QuizResults (QuizResults), getResults)
 import Text.Printf (PrintfType, printf)
 import Utils (boundWrapAround, getTimeString)
 
 -- I'd like to change this to avoid misfeature DatatypeContexts
-data (Q.Quiz q) => QuizState q = QuizState
-  { quiz :: q,
+data QuizState = QuizState
+  { quiz :: Q.Quiz,
     startTime :: UTCTime,
     finishedQuiz :: Bool,
     endTime :: Maybe UTCTime
@@ -58,19 +57,23 @@ data (Q.Quiz q) => QuizState q = QuizState
 
 data Navigation = LEFT | RIGHT deriving (Eq, Show)
 
-selectAnswer :: (Q.Quiz q) => Q.Direction -> QuizState q -> QuizState q
+execQuizState stateFunc state = runIdentity $ execStateT stateFunc state
+
+evalQuizState stateFunc state = runIdentity $ evalStateT stateFunc state
+
+selectAnswer :: Q.Direction -> QuizState -> QuizState
 selectAnswer n q =
   q
-    { quiz = Q.directionAnswerCurr (quiz q) n
+    { quiz = execQuizState (Q.directionalAnswerCurr n) (quiz q)
     }
 
-startState :: (Q.Quiz q) => Q.QuestionList -> IO (Maybe (QuizState q))
+startState :: Q.QuestionList -> IO QuizState
 startState q = do
   quizStart <- getCurrentTime
   let mQuiz = Q.createQuiz q
-  return $ QuizState <$> mQuiz <*> pure quizStart <*> pure False <*> Just Nothing
+  return $ QuizState mQuiz quizStart False Nothing
 
-topUI :: (Q.Quiz q) => QuizState q -> Widget ()
+topUI :: QuizState -> Widget ()
 topUI (QuizState q _ _ _) =
   let questionCount = Q.total q
       current = Q.currPosition q
@@ -83,7 +86,7 @@ bottomUI =
     . intersperse (str "    ")
     $ str <$> ["Ctrl+C: Quit Quiz", "Right/Left: Next/Prev", "Up/Down: Select Answer", "Enter: Finish Quiz"]
 
-resultUI :: (Q.Quiz q) => QuizState q -> Widget ()
+resultUI :: QuizState -> Widget ()
 resultUI (QuizState a s True e) =
   let (QuizResults answered total correct _ _) = getResults "" "" a
       elapsedTime = fromMaybe nominalDay $ Just diffUTCTime <*> e <*> Just s
@@ -100,9 +103,9 @@ wrapOnlyIf m n t
   | n < m = str t
   | otherwise = hLimit m . strWrap $ t
 
-questionUI :: (Q.Quiz q) => QuizState q -> Widget ()
+questionUI :: QuizState -> Widget ()
 questionUI (QuizState quiz s done _) =
-  let (Q.Question q a ci, s) = Q.currAnswer quiz
+  let (Q.Question q a ci, s) = evalQuizState Q.currAnswer quiz
       questionWidget = borderWithLabel (str "Question") . hCenter . wrapOnlyIf 100 (length q) $ q
       answerList = ("[ ] " ++) <$> a & (element (pred $ fromMaybe (-1) s) %~ (element 1 .~ 'x'))
       selectedAnswerList =
@@ -117,24 +120,25 @@ questionUI (QuizState quiz s done _) =
    in questionWidget <=> selectedAnswerList
 
 -- Need to handle end of zip here
-moveQuestion :: (Q.Quiz q) => Navigation -> QuizState q -> QuizState q
-moveQuestion RIGHT q = q { quiz = (\l -> if Q.hasNext l then Q.next l else l) . quiz $ q}
-moveQuestion LEFT q = q {quiz = Q.prev . quiz $ q}
+moveQuestion :: Navigation -> QuizState -> QuizState
+moveQuestion RIGHT q = q {quiz = (\l -> if evalQuizState Q.hasNext l then execQuizState Q.next l else l) . quiz $ q}
+moveQuestion LEFT q = q {quiz = execQuizState Q.prev (quiz q)}
 
-drawUI :: (Q.Quiz q) => QuizState q -> [Widget ()]
+drawUI :: QuizState -> [Widget ()]
 drawUI qs =
   let mainUI = topUI qs <=> questionUI qs <=> bottomUI
    in if finishedQuiz qs then [resultUI qs <+> mainUI] else [mainUI]
 
-endQuiz :: (Q.Quiz q) => QuizState q -> IO (QuizState q)
+endQuiz :: QuizState -> IO QuizState
 endQuiz st = do
   quizEnd <- getCurrentTime
-  return $  st {
-    finishedQuiz = True,
-    endTime = Just quizEnd
-  }
+  return $
+    st
+      { finishedQuiz = True,
+        endTime = Just quizEnd
+      }
 
-handleEvents :: (Q.Quiz q) => QuizState q -> BrickEvent () e -> EventM () (Next (QuizState q))
+handleEvents :: QuizState -> BrickEvent () e -> EventM () (Next QuizState)
 handleEvents st (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = halt st
 handleEvents st (VtyEvent (V.EvKey V.KDown [])) = continue $ if finishedQuiz st then st else selectAnswer Q.Up st
 handleEvents st (VtyEvent (V.EvKey V.KUp [])) = continue $ if finishedQuiz st then st else selectAnswer Q.Down st
@@ -153,7 +157,7 @@ quizAttrMap =
         (attrName "correct", fg green)
       ]
 
-quizApp :: (Q.Quiz q) => App (QuizState q) () ()
+quizApp :: App (QuizState) () ()
 quizApp =
   App
     { appDraw = drawUI,

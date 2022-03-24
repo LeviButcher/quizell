@@ -20,7 +20,7 @@ data QuizResults = QuizResults
   }
   deriving (Show, Read)
 
-getResults :: Q.Quiz q => Taker -> TestFile -> q -> QuizResults
+getResults :: Taker -> TestFile -> Q.Quiz -> QuizResults
 getResults t tf q =
   QuizResults
     { answered = Q.totalAnswered q,
@@ -64,3 +64,16 @@ instance Log QuizResults where
     saveDir <- getAppUserDataDirectory quizellLog
     let filePath = saveDir ++ "/" ++ resultsLog
     map read . lines <$> readFile filePath <|> pure []
+
+presentResults :: QuizResults -> IO ()
+presentResults qr = do
+  let totalQ = total qr
+      correctQ = correct qr
+      percentC = fromIntegral correctQ / fromIntegral totalQ * 100
+      file = testFile qr
+      user = taker qr
+  putStrLn $ "Results for: " ++ user
+  putStrLn $ "Total Correct: " ++ show correctQ
+  putStrLn $ "Total Questions: " ++ show totalQ
+  putStrLn $ "Percentage Correct: " ++ show percentC ++ "%"
+  putStrLn $ "Test File: " ++ file

@@ -25,13 +25,12 @@ source-repository head
 
 library
   exposed-modules:
-      CLI
       MainHelpers
       QuestionParser
       Quiz
+      QuizCLI
       QuizResults
       Utils
-      ZipperQuiz
   other-modules:
       Paths_quizell
   hs-source-dirs:

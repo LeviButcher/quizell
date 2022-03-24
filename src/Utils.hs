@@ -2,7 +2,7 @@ module Utils where
 
 import Data.Maybe (fromMaybe)
 import Data.Time (DiffTime, NominalDiffTime, defaultTimeLocale, formatTime)
-import System.Console.ANSI (Color (Blue, Green, Red), ColorIntensity (Vivid), ConsoleLayer (Foreground), SGR (Reset, SetColor), clearScreen, setCursorPosition, setSGR)
+import System.Console.ANSI (Color (Blue, Cyan, Green, Magenta, Red), ColorIntensity (Dull, Vivid), ConsoleLayer (Foreground), SGR (Reset, SetColor), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
 allTrue :: [Bool] -> Bool
@@ -49,4 +49,4 @@ infoText :: (String -> IO ()) -> String -> IO ()
 infoText = prettyText [SetColor Foreground Vivid Blue]
 
 goodNewsText :: (String -> IO ()) -> String -> IO ()
-goodNewsText = prettyText [SetColor Foreground Vivid Green]
+goodNewsText = prettyText [SetColor Foreground Vivid Cyan]
