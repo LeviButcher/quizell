@@ -68,7 +68,6 @@ executable quizell
     , ansi-terminal
     , async
     , base >=4.2 && <5
-    , brick
     , directory
     , filepath
     , lens
@@ -81,8 +80,6 @@ executable quizell
     , random-shuffle
     , split
     , time
-    , unix
-    , vty
   default-language: Haskell2010
 
 executable quizell2

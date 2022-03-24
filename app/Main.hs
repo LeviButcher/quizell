@@ -1,6 +1,5 @@
 module Main where
 
-import Brick (defaultMain)
 import Control.Concurrent (killThread, threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Exception (Exception, throw)
@@ -32,7 +31,7 @@ import qualified QuestionParser as QP
 import Quiz (QuestionList)
 import qualified Quiz as Q
 import qualified QuizResults as QR
-import System.Posix.User (getLoginName)
+import System.Environment (getArgs, getEnv)
 import Utils (Log (readLog), toLog)
 
 parseArgs :: Parser ProgramArgs
@@ -54,6 +53,9 @@ main = runProgram =<< execParser opts
             <> progDesc "quizell - a CLI for quiz taking"
             <> header "quizell"
         )
+
+getLoginName :: IO String
+getLoginName = getEnv "USERNAME"
 
 runProgram :: ProgramArgs -> IO ()
 runProgram args = runQuizell args getLoginName normalApp

@@ -50,9 +50,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - quizell
-    - brick
-    - vty
-    - unix
 
   quizell2:
     main:                Mainx.hs
