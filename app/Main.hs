@@ -33,7 +33,6 @@ import Quiz (QuestionList)
 import qualified Quiz as Q
 import qualified QuizResults as QR
 import System.Posix.User (getLoginName)
-import TUI (QuizState (..), quizApp, startState)
 import Utils (Log (readLog), toLog)
 
 parseArgs :: Parser ProgramArgs
@@ -41,7 +40,7 @@ parseArgs =
   ProgramArgs
     <$> strOption (long "file" <> short 'f' <> metavar "Quiz File Path" <> help "Full or Relative path to Quiz file")
     <*> option auto (long "length" <> short 'l' <> help "Number of questions to use" <> metavar "INT" <> value 0)
-    <*> switch (long "tui" <> help "Turn on TUI mode (Works only on Unix)")
+    <*> switch (long "tui" <> help "Turn on TUI mode (Disabled for now)")
     <*> switch (long "results" <> short 'r' <> help "Show your past quiz results")
     <*> option auto (long "time" <> short 't' <> help "Amount of time for quiz (In Seconds)" <> metavar "INT" <> value 0)
 
@@ -57,10 +56,10 @@ main = runProgram =<< execParser opts
         )
 
 runProgram :: ProgramArgs -> IO ()
-runProgram args = runQuizell args getLoginName $ if tuiOn args then tuiApp else normalApp
+runProgram args = runQuizell args getLoginName normalApp
 
-tuiApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz
-tuiApp args questionList = do
-  mQuiz <- startState questionList
-  res <- defaultMain quizApp mQuiz
-  return (quiz res)
+-- tuiApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz
+-- tuiApp args questionList = do
+--   mQuiz <- startState questionList
+--   res <- defaultMain quizApp mQuiz
+--   return (quiz res)

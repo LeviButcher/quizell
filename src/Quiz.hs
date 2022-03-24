@@ -1,6 +1,7 @@
 module Quiz where
 
-import Control.Monad.State.Lazy (MonadState (get, put), MonadTrans (lift), State, StateT)
+import Control.Concurrent.MState
+import Control.Monad.Cont (MonadIO)
 import Data.List.Zipper (Zipper (Zip), cursor, endp, foldlz, fromList, left, replace, right, start, toList)
 import qualified Data.List.Zipper as Z
 import Data.Maybe (fromMaybe, isJust)
@@ -22,33 +23,29 @@ type Quiz = Zipper AnsweredQuestion
 
 data Direction = Up | Down
 
-type QuizTaker m a = StateT Quiz m a
+type QuizTaker m a = MState Quiz m a
 
-next :: (Monad m) => QuizTaker m ()
-next = do
-  s <- get
-  put . right $ s
+next :: (MonadIO m) => QuizTaker m ()
+next = modifyM (\s -> ((), right s))
 
-prev :: (Monad m) => QuizTaker m ()
-prev = do
-  s <- get
-  put . left $ s
+prev :: (MonadIO m) => QuizTaker m ()
+prev = modifyM (\s -> ((), left s))
 
-curr :: (Monad m) => QuizTaker m Question
+curr :: (MonadIO m) => QuizTaker m Question
 curr = fst <$> currAnswer
 
-currAnswer :: (Monad m) => QuizTaker m AnsweredQuestion
+currAnswer :: (MonadIO m) => QuizTaker m AnsweredQuestion
 currAnswer = cursor <$> get
 
-hasNext :: (Monad m) => QuizTaker m Bool
+hasNext :: (MonadIO m) => QuizTaker m Bool
 hasNext = do
   not . endp . Z.right <$> get
 
-hasPrev :: (Monad m) => QuizTaker m Bool
+hasPrev :: (MonadIO m) => QuizTaker m Bool
 hasPrev = do
   not . Z.beginp . Z.left <$> get
 
-answerCurr :: (Monad m) => Int -> QuizTaker m (Int, Int)
+answerCurr :: (MonadIO m) => Int -> QuizTaker m (Int, Int)
 answerCurr n = do
   s <- get
   x <- curr
@@ -56,7 +53,7 @@ answerCurr n = do
   return (n, correct x)
 
 -- Can easily reduce this down
-directionalAnswerCurr :: (Monad m) => Direction -> QuizTaker m (Int, Int)
+directionalAnswerCurr :: (MonadIO m) => Direction -> QuizTaker m (Int, Int)
 directionalAnswerCurr d = do
   (Question _ a ci, maybe) <- currAnswer
   let totalAnswers = length a

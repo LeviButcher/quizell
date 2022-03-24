@@ -1,10 +1,13 @@
 module QuizCLI where
 
+import Control.Applicative ((<|>))
 import Control.Arrow (left)
+import Control.Concurrent (forkIO, killThread, threadDelay)
+import Control.Concurrent.MState (MState, forkM, forkM_, killMState, waitM)
 import Control.Exception (try)
-import qualified Control.Monad
-import Control.Monad.State.Lazy (MonadState (get, put), MonadTrans (lift))
+import Control.Monad.Cont (MonadIO, MonadTrans (lift))
 import Data.Bifunctor (Bifunctor (first))
+import Data.Either (fromRight)
 import Data.Functor ((<&>))
 import QuestionParser as QP (parseQuestions)
 import Quiz (Question (Question, question), QuizTaker, answerCurr, curr, hasNext, next)
@@ -84,3 +87,21 @@ getQuestionList file n = do
   txt <- getQuizFile file
   randomQ <- sequence $ txt >>= getParsedQuiz <&> randomizeQuiz
   return $ randomQ >>= trimQuiz n
+
+timer :: Int -> QuizTaker IO ()
+timer n = do
+  lift (threadDelay n)
+  lift resetScreen
+  lift $ errorText putStrLn "You have run out of time!"
+  return ()
+
+timedTakeQuiz :: Int -> QuizTaker IO ()
+timedTakeQuiz n =
+  do
+    quizId <- forkM takeQuiz
+    timerId <- forkM (timer n)
+
+    forkM (waitM quizId >> lift (killThread timerId))
+    forkM (waitM timerId >> lift (killThread quizId))
+
+    return ()

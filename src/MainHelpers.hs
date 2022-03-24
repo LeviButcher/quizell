@@ -2,6 +2,7 @@ module MainHelpers (ProgramArgs (..), runQuizell, normalApp) where
 
 import Control.Concurrent (MVar, newMVar, threadDelay)
 import Control.Concurrent.Async (race)
+import Control.Concurrent.MState (execMState)
 import Control.Exception (Exception, throw)
 import qualified Control.Monad as Data.Foldable
 import Control.Monad.ST (runST)
@@ -10,7 +11,7 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Time (diffUTCTime, getCurrentTime)
 import qualified QuestionParser as QP
 import qualified Quiz as Q
-import QuizCLI (getQuestionList, printUserLogs, takeQuiz)
+import QuizCLI (getQuestionList, printUserLogs, takeQuiz, timedTakeQuiz)
 import QuizResults (QuizResults, getResults)
 import qualified QuizResults as QR
 import System.Random (newStdGen)
@@ -43,10 +44,6 @@ secondsToMicro x = x * 1000000
 
 runQuizell :: ProgramArgs -> IO String -> QuizellApp -> IO ()
 runQuizell args@(ProgramArgs q l t r time) getName quizell = do
-  -- res <- if time <= 0 then Right <$> actualProgram else race (quizStopper time) actualProgram
-  -- case res of
-  --   Left _ -> putStrLn "TIMES UP, TRY NEXT TIME KID"
-  --   Right _ -> putStrLn "Thank you for using quizell"
   actualProgram
   where
     actualProgram = do
@@ -60,19 +57,20 @@ runQuizell args@(ProgramArgs q l t r time) getName quizell = do
                 Right quiz -> do
                   quizStart <- getCurrentTime
                   finalState <- quizell args quiz
-                  res <- getResults <$> getName <*> pure q <*> pure finalState
-                  quizEnd <- getCurrentTime
-                  let elapsedTime = diffUTCTime quizEnd quizStart
-                  QR.presentResults res
+                  res <-
+                    getResults <$> getName <*> pure q <*> pure finalState <*> pure quizStart
+                      <*> getCurrentTime
+                      <*> pure time
+                  putStrLn "--QUIZ RESULTS--"
+                  putStrLn $ QR.showResult res
                   toLog res
           )
 
 normalApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz
 normalApp args qList = do
   let quiz = Q.createQuiz qList
-  execStateT takeQuiz quiz
+  let t = time args
 
--- asyncNormalApp :: ProgramArgs -> IO String -> Q.QuestionList -> IO (MVar Q.Quiz)
--- asyncNormalApp args getUserName qList = do
---   quiz <- newMVar (Q.createQuiz qList)
---   execStateT takeQuiz quiz
+  if t > 0
+    then execMState (timedTakeQuiz (secondsToMicro t)) quiz
+    else execMState takeQuiz quiz

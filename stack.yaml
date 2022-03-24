@@ -44,6 +44,7 @@ packages:
 
 extra-deps:
 - ListZipper-1.2.0.2@sha256:5bbb5a4cc7f1cae962310407f711b874c087b48a0ba39b9fcce84cdb0ff5244c,639
+- mstate-0.2.8@sha256:e9e2fb7767f0d2aecaffc0cc45a05576f7ccec013a0dbf1e3793478c27caddac,928
 
 # Extra package databases containing global packages
 # extra-package-dbs: []

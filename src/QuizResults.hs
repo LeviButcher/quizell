@@ -1,6 +1,7 @@
 module QuizResults where
 
 import Control.Applicative (Alternative ((<|>)))
+import Data.Time (UTCTime, diffUTCTime)
 import qualified Quiz as Q
 import System.Directory (createDirectory, createDirectoryIfMissing, doesFileExist, getAppUserDataDirectory)
 import System.FilePath.Posix (takeDirectory)
@@ -10,34 +11,44 @@ type Taker = String
 
 type TestFile = String
 
--- TODO: add time taken
 data QuizResults = QuizResults
   { answered :: Int,
     total :: Int,
     correct :: Int,
     taker :: Taker,
-    testFile :: TestFile
+    testFile :: TestFile,
+    startTime :: UTCTime,
+    endTime :: UTCTime,
+    allotedTime :: Int
   }
   deriving (Show, Read)
 
-getResults :: Taker -> TestFile -> Q.Quiz -> QuizResults
-getResults t tf q =
+getResults :: Taker -> TestFile -> Q.Quiz -> UTCTime -> UTCTime -> Int -> QuizResults
+getResults t tf q start end alloted =
   QuizResults
     { answered = Q.totalAnswered q,
       total = Q.total q,
       correct = Q.totalCorrect q,
       taker = t,
-      testFile = tf
+      testFile = tf,
+      startTime = start,
+      endTime = end,
+      allotedTime = alloted
     }
 
 -- Don't want to override the Show typeclass
 showResult :: QuizResults -> String
-showResult (QuizResults a t c user tFile) =
+showResult (QuizResults a t c user tFile start end alloted) =
   unlines
     [ "user: " ++ user,
       "file: " ++ tFile,
-      "correct: " ++ show c ++ "/" ++ show t
+      "correct: " ++ show c ++ "/" ++ show t ++ " => " ++ show percentC ++ "%",
+      "answered: " ++ show a ++ "/" ++ show t,
+      "time taken: " ++ show (diffUTCTime end start),
+      if alloted > 0 then "time allowed: " ++ show alloted else ""
     ]
+  where
+    percentC = fromIntegral c / fromIntegral t * 100
 
 showResults :: [QuizResults] -> String
 showResults = unlines . map showResult
@@ -64,16 +75,3 @@ instance Log QuizResults where
     saveDir <- getAppUserDataDirectory quizellLog
     let filePath = saveDir ++ "/" ++ resultsLog
     map read . lines <$> readFile filePath <|> pure []
-
-presentResults :: QuizResults -> IO ()
-presentResults qr = do
-  let totalQ = total qr
-      correctQ = correct qr
-      percentC = fromIntegral correctQ / fromIntegral totalQ * 100
-      file = testFile qr
-      user = taker qr
-  putStrLn $ "Results for: " ++ user
-  putStrLn $ "Total Correct: " ++ show correctQ
-  putStrLn $ "Total Questions: " ++ show totalQ
-  putStrLn $ "Percentage Correct: " ++ show percentC ++ "%"
-  putStrLn $ "Test File: " ++ file
