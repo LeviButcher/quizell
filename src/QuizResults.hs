@@ -64,7 +64,7 @@ getLinuxStorage s = do
   let base = "/usr/share"
   return $ mconcat [base, "/", s]
 getWindowsStorage s = do
-  let base = "C:/"
+  let base = "C:/ProgramData"
   return $ mconcat [base, "/", s]
 
 instance Log QuizResults where

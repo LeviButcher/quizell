@@ -64,6 +64,9 @@ runQuizell args@(ProgramArgs q l t r time) getStorage getName quizell = do
                   putStrLn "--QUIZ RESULTS--"
                   putStrLn $ QR.showResult res
                   toLog getStorage res
+                  putStrLn "Press Enter to Cont."
+                  getLine
+                  return ()
           )
 
 normalApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz

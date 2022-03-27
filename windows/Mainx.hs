@@ -33,9 +33,18 @@ prettyConfig :: ProgramArgs -> String
 prettyConfig (ProgramArgs file qLength _ showRes time) =
   printf "file=\"%s\"    questionCount=%d    time=%d   showYourPastScore=%s" file qLength time (show showRes)
 
+loop :: a -> (a -> IO a) -> (a -> IO ()) -> IO a
+loop args setupArgs runArgs = do
+  updatedArgs <- setupArgs args
+  runArgs updatedArgs
+  loop updatedArgs setupArgs runArgs
+
 -- Would love to somehow have the menu option be hard typed to avoid runtime errors
 main :: IO ()
-main = getDefaultQuizellArgs >>= setup >>= \x -> runQuizell x QR.getWindowsStorage getWindowsUserName normalApp
+main = do
+  args <- getDefaultQuizellArgs
+  loop args setup (\x -> runQuizell x QR.getWindowsStorage getWindowsUserName normalApp)
+  return ()
   where
     setup args = do
       resetScreen
@@ -58,7 +67,7 @@ main = getDefaultQuizellArgs >>= setup >>= \x -> runQuizell x QR.getWindowsStora
         4 -> do
           return $ args {showResults = True}
         5 -> return args
-        6 -> exitSuccess
+        6 -> putStrLn "Thank you for using quizell!" >> exitSuccess
         _ -> putStrLn "Invalid Menu Option (Enter to Cont.)" >> getLine >> setup args
 
 getWindowsUserName :: IO String
