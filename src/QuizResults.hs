@@ -3,7 +3,7 @@ module QuizResults where
 import Control.Applicative (Alternative ((<|>)))
 import Data.Time (UTCTime, diffUTCTime)
 import qualified Quiz as Q
-import System.Directory (createDirectory, createDirectoryIfMissing, doesFileExist, getAppUserDataDirectory)
+import System.Directory (XdgDirectoryList (XdgDataDirs), createDirectory, createDirectoryIfMissing, doesFileExist, getAppUserDataDirectory, getXdgDirectoryList)
 import System.FilePath.Posix (takeDirectory)
 import Utils (Log (readLog, toLog))
 
@@ -59,9 +59,17 @@ quizellLog = "quizell"
 resultsLog :: String
 resultsLog = "results.log"
 
+getLinuxStorage, getWindowsStorage :: FilePath -> IO FilePath
+getLinuxStorage s = do
+  let base = "/usr/share"
+  return $ mconcat [base, "/", s]
+getWindowsStorage s = do
+  let base = "C:/"
+  return $ mconcat [base, "/", s]
+
 instance Log QuizResults where
-  toLog res = do
-    saveDir <- getAppUserDataDirectory quizellLog
+  toLog getStorage res = do
+    saveDir <- getStorage quizellLog
 
     let filePath = saveDir ++ "/" ++ resultsLog
         createLog = writeFile filePath (show res)
@@ -71,7 +79,7 @@ instance Log QuizResults where
     fExist <- doesFileExist filePath
     if fExist then appendLog else createLog
 
-  readLog = do
-    saveDir <- getAppUserDataDirectory quizellLog
+  readLog getStorage = do
+    saveDir <- getStorage quizellLog
     let filePath = saveDir ++ "/" ++ resultsLog
     map read . lines <$> readFile filePath <|> pure []

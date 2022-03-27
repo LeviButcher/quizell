@@ -7,12 +7,12 @@
     - [x] Unix Location
     - [x] Windows Location
 [x] Show Users Pasted QuizResults
-[ ] Time passed test taking
+[x] Time passed test taking
     - Should close quiz after alloted time if not finished
     - Might be able to sleep a process for alloted time then have it kill the program
-- [] Implement Windows based screen menu (Not use cli parameters)
-- [] Check all implementation on Windows
-    - [] Line delinemters may mess up program
+- [x] Implement Windows based screen menu (Not use cli parameters)
+- [x] Check all implementation on Windows
+    - [x] Line delinemters may mess up program
 
 Windows Requirements
 - Support Configuration via a [MENU]

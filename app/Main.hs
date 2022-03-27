@@ -58,7 +58,7 @@ getLoginName :: IO String
 getLoginName = getEnv "USERNAME"
 
 runProgram :: ProgramArgs -> IO ()
-runProgram args = runQuizell args getLoginName normalApp
+runProgram args = runQuizell args QR.getLinuxStorage getLoginName normalApp
 
 -- tuiApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz
 -- tuiApp args questionList = do

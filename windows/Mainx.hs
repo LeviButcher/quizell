@@ -1,31 +1,14 @@
 module Mainx where
 
-import Control.Applicative ((<**>))
-import Control.Arrow (ArrowChoice (left))
-import Control.Exception (try)
-import Control.Exception.Base (Exception)
-import Control.Lens ()
-import Control.Monad (void)
-import Data.Aeson ()
-import qualified Data.Bifunctor
-import qualified Data.Functor
-import Data.Maybe (catMaybes, fromMaybe)
-import Data.Semigroup (Option)
-import Data.Time (diffUTCTime, getCurrentTime)
 import MainHelpers
   ( ProgramArgs (..),
     normalApp,
     runQuizell,
   )
-import Options.Applicative (auto, execParser, fullDesc, header, help, helper, info, long, metavar, option, progDesc, short, strOption, switch, value, (<**>))
-import Options.Applicative.Types (Parser)
-import qualified QuestionParser as QP
+import qualified QuizResults as QR
 import System.Environment (getArgs, getEnv)
 import System.Exit (exitSuccess)
-import System.Random (newStdGen)
-import qualified Text.ParserCombinators.Parsec as P
 import Text.Printf (printf)
-import Text.Read (readEither, readMaybe)
 import Utils (Log (toLog), getNumberOrDefault, numberStrings, resetScreen)
 
 setQuizFile :: IO String
@@ -52,7 +35,7 @@ prettyConfig (ProgramArgs file qLength _ showRes time) =
 
 -- Would love to somehow have the menu option be hard typed to avoid runtime errors
 main :: IO ()
-main = getDefaultQuizellArgs >>= setup >>= \x -> runQuizell x getWindowsUserName normalApp
+main = getDefaultQuizellArgs >>= setup >>= \x -> runQuizell x QR.getWindowsStorage getWindowsUserName normalApp
   where
     setup args = do
       resetScreen

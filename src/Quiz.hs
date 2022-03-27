@@ -1,6 +1,10 @@
 module Quiz where
 
 import Control.Concurrent.MState
+  ( MState,
+    MonadState (get, put),
+    modifyM,
+  )
 import Control.Monad.Cont (MonadIO)
 import Data.List.Zipper (Zipper (Zip), cursor, endp, foldlz, fromList, left, replace, right, start, toList)
 import qualified Data.List.Zipper as Z
@@ -45,12 +49,20 @@ hasPrev :: (MonadIO m) => QuizTaker m Bool
 hasPrev = do
   not . Z.beginp . Z.left <$> get
 
-answerCurr :: (MonadIO m) => Int -> QuizTaker m (Int, Int)
+validAnswer :: Int -> Question -> Bool
+validAnswer n (Question _ ans _) = n >= 1 && n <= totalAnswers
+  where
+    totalAnswers = length ans
+
+answerCurr :: (MonadIO m) => Int -> QuizTaker m (Maybe (Int, Int))
 answerCurr n = do
   s <- get
   x <- curr
-  put $ replace (x, Just n) s
-  return (n, correct x)
+  if validAnswer n x
+    then do
+      put $ replace (x, Just n) s
+      return . Just $ (n, correct x)
+    else return Nothing
 
 -- Can easily reduce this down
 directionalAnswerCurr :: (MonadIO m) => Direction -> QuizTaker m (Int, Int)

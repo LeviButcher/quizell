@@ -42,13 +42,13 @@ quizStopper n = do
 secondsToMicro :: Num a => a -> a
 secondsToMicro x = x * 1000000
 
-runQuizell :: ProgramArgs -> IO String -> QuizellApp -> IO ()
-runQuizell args@(ProgramArgs q l t r time) getName quizell = do
+runQuizell :: ProgramArgs -> (String -> IO String) -> IO String -> QuizellApp -> IO ()
+runQuizell args@(ProgramArgs q l t r time) getStorage getName quizell = do
   actualProgram
   where
     actualProgram = do
       if r
-        then printUserLogs getName
+        then printUserLogs getStorage getName
         else
           ( do
               qList <- getQuestionList q l
@@ -63,7 +63,7 @@ runQuizell args@(ProgramArgs q l t r time) getName quizell = do
                       <*> pure time
                   putStrLn "--QUIZ RESULTS--"
                   putStrLn $ QR.showResult res
-                  toLog res
+                  toLog getStorage res
           )
 
 normalApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz

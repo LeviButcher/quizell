@@ -14,6 +14,16 @@ Folder Layout
 |  test -> Testing Source code
 ```
 
+## Setup Instructions Linux
+
+- Create a folder at /usr/share called quizell.
+- Create a group called quizell and give that group ownership of the folder
+- Add any user you want to take a quiz to the quizell group
+
+## Setup Instructions Windows
+
+IDK yet
+
 ## quizell Installation Directions
 
 No Installation is necessary. The executable is at the root of the submission folder. Copy and paste to any windows or ubuntu machine

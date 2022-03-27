@@ -23,8 +23,8 @@ getTimeString :: NominalDiffTime -> String
 getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
 
 class Log a where
-  toLog :: a -> IO ()
-  readLog :: IO [a]
+  toLog :: (String -> IO String) -> a -> IO ()
+  readLog :: (String -> IO String) -> IO [a]
 
 numberStrings :: [String] -> String
 numberStrings s = unlines $ (\(a, b) -> concat [show a, ") ", b]) <$> zip [1 ..] s

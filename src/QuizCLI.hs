@@ -3,7 +3,7 @@ module QuizCLI where
 import Control.Applicative ((<|>))
 import Control.Arrow (left)
 import Control.Concurrent (forkIO, killThread, threadDelay)
-import Control.Concurrent.MState (MState, forkM, forkM_, killMState, waitM)
+import Control.Concurrent.MState (MState, MonadState (state), forkM, forkM_, killMState, waitM)
 import Control.Exception (try)
 import Control.Monad.Cont (MonadIO, MonadTrans (lift))
 import Data.Bifunctor (Bifunctor (first))
@@ -27,20 +27,23 @@ userAnswerCurr = do
   lift $ putStrLn (printQuestion q)
   lift $ putStrLn "Enter # of answer:"
   input <- lift $ getNumberOrDefault 0
-  (ai, ci) <- answerCurr input
+  possibleAns <- answerCurr input
 
-  lift $ putStrLn ""
-  if ai == ci
-    then do
-      lift . goodNewsText putStrLn $ "You Answered Correctly!"
-    else do
-      lift . errorText putStrLn $ "You Answered Incorrectly!"
-      lift . putStrLn $ "Correct Answer was #" ++ show ci
-  lift $ putStrLn ""
+  case possibleAns of
+    Nothing -> (lift . putStrLn $ "Invalid Answer, try again") >> userAnswerCurr
+    Just (ai, ci) -> do
+      lift $ putStrLn ""
+      if ai == ci
+        then do
+          lift . goodNewsText putStrLn $ "You Answered Correctly!"
+        else do
+          lift . errorText putStrLn $ "You Answered Incorrectly!"
+          lift . putStrLn $ "Correct Answer was #" ++ show ci
+      lift $ putStrLn ""
 
-  lift $ putStrLn "Press enter to continue..."
-  lift getLine
-  return (ai == ci)
+      lift $ putStrLn "Press enter to continue..."
+      lift getLine
+      return (ai == ci)
 
 takeQuiz :: QuizTaker IO ()
 takeQuiz = do
@@ -75,10 +78,10 @@ trimQuiz n q
   where
     qLength = length q
 
-printUserLogs :: IO String -> IO ()
-printUserLogs getName = do
+printUserLogs :: (String -> IO String) -> IO String -> IO ()
+printUserLogs getStorage getName = do
   user <- getName
-  logs <- readLog
+  logs <- readLog getStorage
   let userLogs = filter ((user ==) . QR.taker) logs
   putStrLn $ QR.showResults userLogs
 
