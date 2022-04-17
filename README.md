@@ -7,7 +7,6 @@ A quiz taking CLI
 Folder Layout
 
 ```bash
-./
 |  data -> examples quiz file
 |  src -> Library Source code
 |  app -> Start of the application, Main
@@ -16,13 +15,15 @@ Folder Layout
 
 ## Setup Instructions Linux
 
-- Create a folder at /usr/share called quizell.
-- Create a group called quizell and give that group ownership of the folder
-- Add any user you want to take a quiz to the quizell group
+- Create a folder at /usr/share called quizell. `sudo mkdir /usr/share/quizell`
+- Create a group called quizell and give that group ownership of the folder.
+- `sudo groupadd quizell`
+- `sudo chown levi:quizell /usr/share/quizell`
+- Add any user you want to take a quiz to the quizell group `sudo chmod -a -G quizell <user>`
 
 ## Setup Instructions Windows
 
-IDK yet
+- No setup is necessary on Windows
 
 ## quizell Installation Directions
 
@@ -39,9 +40,12 @@ Available options:
 ```bash
   -f,--file Quiz File Path Full or Relative path to Quiz file
   -l,--length INT          Number of questions to use
-  -t,--tui                 Turn on TUI mode (Works only on Unix)
+  -t                       Enter amount of time for quiz in seconds
+  --tui                    Turn on TUI mode (Disabled Currently)
   -h,--help                Show this help text
 ```
+
+**Quiz results are stored at `/usr/share/quizell/results.log`.**
 
 #### Example Command Unix (assumes you are in the quizell folder)
 
@@ -49,20 +53,11 @@ Available options:
 
 ### Windows
 
-Run the quizell executable in your terminal of choice (Powershell or CommandLine)
+Run the quizell executable in your terminal of choice (Powershell or CommandLine). Double Clicking in window file explorer also works.
 
-`quizell.exe (-f|--file <file-path>) [-t|--tui] [-l|--length <number>]`
+A menu allowing you to configure the quizell application will appear. Follow the directions as shown in the terminal.
 
-```bash
-  -f,--file Quiz File Path Full or Relative path to Quiz file
-  -l,--length INT          Number of questions to use
-  -t,--tui                 Turn on TUI mode (Works only on Unix)
-  -h,--help                Show this help text
-```
-
-#### Example Command Windows (assumes you are in the quizell folder)
-
-`quizell.exe -f data/default`
+**Quiz results are stored at `C:/ProgramData/quizell/results.log`**
 
 ## Extra Information
 
