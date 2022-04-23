@@ -22,6 +22,8 @@ boundWrapAround f l u i
 getTimeString :: NominalDiffTime -> String
 getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
 
+-- getTimeString = const ""
+
 class Log a where
   toLog :: (String -> IO String) -> a -> IO ()
   readLog :: (String -> IO String) -> IO [a]

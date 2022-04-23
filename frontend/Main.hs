@@ -27,7 +27,7 @@ data Action = Init | OpenForm | SubmitForm | ParseQuiz MisoString | StartQuiz | 
   deriving (Show, Eq)
 
 -- | Entry point for a miso application
-main :: JSM ()
+main :: IO ()
 main = startApp App {..}
   where
     initialAction =  Init 

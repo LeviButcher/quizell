@@ -31,8 +31,6 @@ library
       QuizCLI
       QuizResults
       Utils
-  other-modules:
-      Paths_quizell
   hs-source-dirs:
       src
   build-depends:
@@ -54,88 +52,108 @@ library
     , time
   default-language: Haskell2010
 
+executable frontend
+  main-is: Main.hs
+  if !impl(ghcjs)
+    buildable: False
+  else
+    hs-source-dirs: frontend
+    ghcjs-options: -Wall -dedupe
+    build-depends:
+        miso
+      , base >=4.2 && <5
+      , ghcjs-base
+      , quizell
+      
+    default-language: Haskell2010
+
 executable quizell
   main-is: Main.hs
-  other-modules:
-      TUI
-      Paths_quizell
-  hs-source-dirs:
-      app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      ListZipper
-    , aeson
-    , ansi-terminal
-    , async
-    , base >=4.2 && <5
-    , directory
-    , filepath
-    , lens
-    , mstate
-    , mtl
-    , optparse-applicative
-    , parsec
-    , quizell
-    , random
-    , random-shuffle
-    , split
-    , time
-  default-language: Haskell2010
+  if impl(ghcjs)
+    buildable: False
+  else
+    other-modules:
+        TUI
+    hs-source-dirs:
+        app
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+    build-depends:
+        ListZipper
+      , aeson
+      , ansi-terminal
+      , async
+      , base >=4.2 && <5
+      , directory
+      , filepath
+      , lens
+      , mstate
+      , mtl
+      , optparse-applicative
+      , parsec
+      , quizell
+      , random
+      , random-shuffle
+      , split
+      , time
+    default-language: Haskell2010
 
 executable quizell2
   main-is: Mainx.hs
-  other-modules:
-      Paths_quizell
-  hs-source-dirs:
-      windows
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is Mainx
-  build-depends:
-      ListZipper
-    , aeson
-    , ansi-terminal
-    , async
-    , base >=4.2 && <5
-    , directory
-    , filepath
-    , lens
-    , mstate
-    , mtl
-    , optparse-applicative
-    , parsec
-    , quizell
-    , random
-    , random-shuffle
-    , split
-    , time
-  default-language: Haskell2010
+  if impl(ghcjs)
+    buildable: False
+  else
+    hs-source-dirs:
+        windows
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is Mainx
+    build-depends:
+        ListZipper
+      , aeson
+      , ansi-terminal
+      , async
+      , base >=4.2 && <5
+      , directory
+      , filepath
+      , lens
+      , mstate
+      , mtl
+      , optparse-applicative
+      , parsec
+      , quizell
+      , random
+      , random-shuffle
+      , split
+      , time
+    default-language: Haskell2010
 
 test-suite quizell-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
-  other-modules:
-      Unit
-      Paths_quizell
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      HUnit
-    , ListZipper
-    , QuickCheck >=2.1 && <3
-    , aeson
-    , ansi-terminal
-    , async
-    , base >=4.2 && <5
-    , directory
-    , filepath
-    , lens
-    , mstate
-    , mtl
-    , optparse-applicative
-    , parsec
-    , quizell
-    , random
-    , random-shuffle
-    , split
-    , time
-  default-language: Haskell2010
+  if impl(ghcjs)
+    buildable: False
+  else
+    other-modules:
+        Unit
+    hs-source-dirs:
+        test
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+    build-depends:
+        HUnit
+      , ListZipper
+      , QuickCheck >=2.1 && <3
+      , aeson
+      , ansi-terminal
+      , async
+      , base >=4.2 && <5
+      , directory
+      , filepath
+      , lens
+      , mstate
+      , mtl
+      , optparse-applicative
+      , parsec
+      , quizell
+      , random
+      , random-shuffle
+      , split
+      , time
+    default-language: Haskell2010
