@@ -20,7 +20,8 @@ boundWrapAround f l u i
     o = f i
 
 getTimeString :: NominalDiffTime -> String
-getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
+-- getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
+getTimeString = const ""
 
 -- getTimeString = const ""
 

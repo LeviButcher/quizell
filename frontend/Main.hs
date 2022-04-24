@@ -10,6 +10,8 @@ import Miso.String
 import GHCJS.Foreign.Callback
 import GHCJS.Types
 import Control.Concurrent.MVar
+import QuestionParser
+import Quiz as Q
 
 -- TODO
 -- [] Design out Application State and Action
@@ -18,12 +20,12 @@ import Control.Concurrent.MVar
 -- Action = Init | ShowForm | StartQuiz | SubmitQuiz
 
 
-data Model = Start | OpenedForm | Quiz MisoString | FinishedQuiz MisoString
+data Model = Start | OpenedForm | Questions Q.QuestionList | FinishedQuiz MisoString
   deriving (Show, Eq)
 
 
 -- | Sum type for application events
-data Action = Init | OpenForm | SubmitForm | ParseQuiz MisoString | StartQuiz | SubmitQuiz
+data Action = Init | OpenForm | SubmitForm | ParseQuiz MisoString | SetQuestions Q.QuestionList | StartQuiz | SubmitQuiz
   deriving (Show, Eq)
 
 -- | Entry point for a miso application
@@ -42,8 +44,16 @@ main = startApp App {..}
 updateModel :: Action -> Model -> Effect Action Model
 updateModel SubmitForm = processFile
 updateModel OpenForm = const $ noEff (OpenedForm)
-updateModel (ParseQuiz c) = const $ noEff (Quiz c)
+updateModel (ParseQuiz c) = parseFile c
+updateModel (SetQuestions ql) = const $ noEff (Questions ql)
 updateModel a = noEff
+
+parseFile :: MisoString -> Model -> Effect Action Model
+parseFile s m = m <# do
+  let r = parseQuestions (fromMisoString s)
+  return $ case r of
+    Left _ -> Init
+    Right s -> (SetQuestions s)
 
 
 processFile :: Model -> Effect Action Model
@@ -68,7 +78,7 @@ viewModel m = layout $ selectView m
   where
     selectView Start = homeScreen
     selectView OpenedForm = viewForm
-    selectView (Quiz x) = div_ [] [text x]
+    selectView (Questions x) = div_ [] [text (ms . show $ x)]
 
 homeScreen :: View Action
 homeScreen = div_ [] [
@@ -82,7 +92,7 @@ layout children = main_ [] [header, children]
 header :: View Action
 header = header_ [] [
   link_ [href_ "./quizell.css"], 
-  h1_ [] ["Quizell Web App"]
+  h1_ [] ["Quizell SPA"]
   ]
 
 viewForm :: View Action
