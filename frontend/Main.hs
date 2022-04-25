@@ -13,6 +13,19 @@ import qualified QuizResults as R
 import Miso.String (ms)
 import Data.Maybe (fromMaybe)
 
+-- MVC TODO
+-- [] Calculate and Show Results
+-- [] Handle process of upload quiz file
+-- [] Make it pretty with CSS
+-- [] Store Result in LocalStorage As Log
+
+-- Extra TODO
+-- [] Time Limit on quiz
+-- [] Have Default Quizzes Available to take
+
+-- NOTE: Doing the Time Limit would make it easier to do the Results
+
+
 
 data Model = Model {
   quiz :: Q.Quiz,
@@ -52,7 +65,7 @@ main = do
       initialAction =  Prompt,
       model = Model{quiz=quiz, finished=False},
       update = updateModel,
-      view   = viewModel,
+      view   = layout viewModel,
       events = defaultEvents,
       subs   = [],
       mountPoint = Nothing,
@@ -69,6 +82,16 @@ answerCurr :: Int -> Model -> Effect Action Model
 answerCurr i m = noEff $ m {quiz = newQuiz}
   where q = quiz m
         newQuiz = fromMaybe q (Q.answerCurr i q)
+
+
+
+-- Vomiting that theres no way to put the style sheet in a head tag
+-- TODO: Figure out a way to keep the css and index.html beside each other
+layout :: (Model -> View Action) -> Model -> View Action 
+layout f m = main_ [] [styleSheet, va]
+  where va = f m
+        styleSheet = link_ [rel_ "stylesheet", href_ "file:///home/levi/Projects/quizell/frontend/quizell.css"]
+
 
 viewModel :: Model -> View Action
 viewModel (Model q True) = showResults q
