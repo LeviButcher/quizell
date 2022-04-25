@@ -10,9 +10,10 @@ import Data.Bifunctor (Bifunctor (first))
 import Data.Either (fromRight)
 import Data.Functor ((<&>))
 import QuestionParser as QP (parseQuestions)
-import Quiz (Question (Question, question), QuizTaker, answerCurr, curr, hasNext, next)
+import Quiz (Question (..))
 import qualified Quiz as Q
 import qualified QuizResults as QR
+import qualified QuizTaker as QT
 import System.Random (newStdGen)
 import Utils (Log (readLog), allTrue, errorText, getNumberOrDefault, goodNewsText, joinDelim, numberStrings, resetScreen)
 
@@ -21,13 +22,13 @@ printQuestion (Question q a _) = unlines [q, "", numbAnswer]
   where
     numbAnswer = numberStrings a
 
-userAnswerCurr :: QuizTaker IO Bool
+userAnswerCurr :: QT.QuizTaker IO Bool
 userAnswerCurr = do
-  q <- curr
+  q <- QT.curr
   lift $ putStrLn (printQuestion q)
   lift $ putStrLn "Enter # of answer:"
   input <- lift $ getNumberOrDefault 0
-  possibleAns <- answerCurr input
+  possibleAns <- QT.answerCurr input
 
   case possibleAns of
     Nothing -> (lift . putStrLn $ "Invalid Answer, try again") >> userAnswerCurr
@@ -45,15 +46,15 @@ userAnswerCurr = do
       lift getLine
       return (ai == ci)
 
-takeQuiz :: QuizTaker IO ()
+takeQuiz :: QT.QuizTaker IO ()
 takeQuiz = do
   lift resetScreen
   userAnswerCurr
-  b <- hasNext
+  b <- QT.hasNext
   if not b
     then return ()
     else do
-      next
+      QT.next
       takeQuiz
 
 getQuizFile :: String -> IO (Either String String)
@@ -91,14 +92,14 @@ getQuestionList file n = do
   randomQ <- sequence $ txt >>= getParsedQuiz <&> randomizeQuiz
   return $ randomQ >>= trimQuiz n
 
-timer :: Int -> QuizTaker IO ()
+timer :: Int -> QT.QuizTaker IO ()
 timer n = do
   lift (threadDelay n)
   lift resetScreen
   lift $ errorText putStrLn "You have run out of time!"
   return ()
 
-timedTakeQuiz :: Int -> QuizTaker IO ()
+timedTakeQuiz :: Int -> QT.QuizTaker IO ()
 timedTakeQuiz n =
   do
     quizId <- forkM takeQuiz

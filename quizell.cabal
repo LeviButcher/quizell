@@ -31,6 +31,7 @@ library
       QuizCLI
       QuizResults
       Utils
+      QuizTaker
   hs-source-dirs:
       src
   build-depends:
@@ -64,6 +65,7 @@ executable frontend
       , base >=4.2 && <5
       , ghcjs-base
       , quizell
+      , directory
       
     default-language: Haskell2010
 

@@ -6,118 +6,104 @@ module Main where
 
 -- | Miso framework import
 import Miso hiding (asyncCallback)
-import Miso.String
-import GHCJS.Foreign.Callback
-import GHCJS.Types
-import Control.Concurrent.MVar
 import QuestionParser
-import Quiz as Q
-
--- TODO
--- [] Design out Application State and Action
-
--- APPSTATE = NoQuiz | Quiz x | Finished Quiz x
--- Action = Init | ShowForm | StartQuiz | SubmitQuiz
+import qualified Quiz as Q
+import qualified QuizCLI as CLI
+import qualified QuizResults as R
+import Miso.String (ms)
+import Data.Maybe (fromMaybe)
 
 
-data Model = Start | OpenedForm | Questions Q.QuestionList | FinishedQuiz MisoString
-  deriving (Show, Eq)
+data Model = Model {
+  quiz :: Q.Quiz,
+  finished :: Bool
+} deriving (Eq, Show)
 
+fakeQuestionList :: Q.QuestionList
+fakeQuestionList = [ 
+  Q.Question {
+      Q.question = "What is my favorite color",
+      Q.answers = ["Blue", "Red", "Green", "WHAT I DONT KNOW THAT"],
+      Q.correct = 1 
+    },
+  Q.Question {
+      Q.question = "How are you",
+      Q.answers = ["Good", "Bad", "IDK", "WHAT I DONT KNOW THAT"],
+      Q.correct = 1 
+    },
+  Q.Question
+    { Q.question = "Best Zelda Game",
+      Q.answers = ["Zelda 2", "LTTP", "Every One"],
+      Q.correct = 2
+    }
+  ]
+  
 
 -- | Sum type for application events
-data Action = Init | OpenForm | SubmitForm | ParseQuiz MisoString | SetQuestions Q.QuestionList | StartQuiz | SubmitQuiz
+data Action = Prompt | Next | Answer Int | Finish
   deriving (Show, Eq)
 
 -- | Entry point for a miso application
 main :: IO ()
-main = startApp App {..}
-  where
-    initialAction =  Init 
-    model = Start 
-    update = updateModel
-    view   = viewModel
-    events = defaultEvents
-    subs   = []
-    mountPoint = Nothing
-    logLevel = Off  
+main = do
+  let quiz = Q.createQuiz fakeQuestionList
+  startApp 
+    App {
+      initialAction =  Prompt,
+      model = Model{quiz=quiz, finished=False},
+      update = updateModel,
+      view   = viewModel,
+      events = defaultEvents,
+      subs   = [],
+      mountPoint = Nothing,
+      logLevel = DebugPrerender
+    }
 
 updateModel :: Action -> Model -> Effect Action Model
-updateModel SubmitForm = processFile
-updateModel OpenForm = const $ noEff (OpenedForm)
-updateModel (ParseQuiz c) = parseFile c
-updateModel (SetQuestions ql) = const $ noEff (Questions ql)
-updateModel a = noEff
+updateModel Prompt m = noEff m
+updateModel Next m = noEff $ m {quiz=Q.next (quiz m)} -- TODO: How to handle when their is no next -- USE LENS --
+updateModel Finish m = noEff $ m {finished=True}
+updateModel (Answer a) m = answerCurr a m
 
-parseFile :: MisoString -> Model -> Effect Action Model
-parseFile s m = m <# do
-  let r = parseQuestions (fromMisoString s)
-  return $ case r of
-    Left _ -> Init
-    Right s -> (SetQuestions s)
+answerCurr :: Int -> Model -> Effect Action Model
+answerCurr i m = noEff $ m {quiz = newQuiz}
+  where q = quiz m
+        newQuiz = fromMaybe q (Q.answerCurr i q)
 
-
-processFile :: Model -> Effect Action Model
-processFile m = process #> m
-  where 
-    process = do
-      fileReaderInput <- getElementById "fileReader"
-      file <- getFile fileReaderInput
-      reader <- newReader
-      mvar <- newEmptyMVar
-      setOnLoad reader =<< do
-        asyncCallback $ do
-          r <- getResult reader
-          putMVar mvar r
-      readText reader file
-      ParseQuiz <$> readMVar mvar
-
-
--- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Action
-viewModel m = layout $ selectView m
-  where
-    selectView Start = homeScreen
-    selectView OpenedForm = viewForm
-    selectView (Questions x) = div_ [] [text (ms . show $ x)]
+viewModel (Model q True) = showResults q
+viewModel m = currentQuestion m
 
-homeScreen :: View Action
-homeScreen = div_ [] [
-  button_ [onClick OpenForm] [text "Add Quiz"]
-  ]
+showResults :: Q.Quiz -> View Action
+showResults q = div_ [] [text "YAY you finished"]
 
-layout :: View Action -> View Action
-layout children = main_ [] [header, children]
 
--- Not correct way to link css
-header :: View Action
-header = header_ [] [
-  link_ [href_ "./quizell.css"], 
-  h1_ [] ["Quizell SPA"]
-  ]
-
-viewForm :: View Action
-viewForm = form
-  where 
-    form = form_ [id_ "quizForm", onSubmit SubmitForm] [
-      label_ [for_ "file"] [text "Select File"], 
-      input_ [type_ "file", name_ "file", id_ "fileReader"],
-      button_ [type_ "submit"] [text "Submit"]
+currentQuestion :: Model -> View Action
+currentQuestion (Model m _) = 
+  let (Q.Question quest _ _, _) = Q.currAnswer m
+      nextButton = button_ [onClick Next, type_ "button"] [text "Next"]
+      finishButton = button_ [type_ "submit"] [text "Finish"] -- Maybe should show this always?
+  in form_ [name_ "Quiz Question", onSubmit Finish] [
+      header_ [] [
+        h2_ [] [text (ms quest)]
+      ],
+      answers (Q.currAnswer m),
+      footer_ [] [
+        nextButton,
+        finishButton
       ]
+    ]
 
-
-
--- I hate the below code for reading file
-foreign import javascript unsafe "$r = new FileReader();"
-  newReader :: IO JSVal
-
-foreign import javascript unsafe "$r = $1.files[0];"
-  getFile :: JSVal -> IO JSVal
-
-foreign import javascript unsafe "$1.onload = $2;"
-  setOnLoad :: JSVal -> Callback (IO ()) -> IO ()
-
-foreign import javascript unsafe "$r = $1.result;"
-  getResult :: JSVal -> IO MisoString
-
-foreign import javascript unsafe "$1.readAsText($2);"
-  readText :: JSVal -> JSVal -> IO ()
+answers :: Q.AnsweredQuestion -> View Action
+answers (Q.Question _ answers _, ans) = fieldset_ [] (legend:items)
+    where 
+      item :: (Int, String) -> View Action -- Vomiting over having to put inputs inside labels :/
+      item (i, x) = label_ [] [ 
+          text (ms x),
+          input_ [ type_ "checkbox", value_ (ms i), checked_ (isChecked ans i), onClick (Answer i)]
+        ]
+      isChecked :: Maybe Int -> Int -> Bool
+      isChecked Nothing = const False
+      isChecked (Just a) = (== a)
+      legend = legend_ [] [text "Select a Answer"]
+      items = item <$> zip [1 ..] answers

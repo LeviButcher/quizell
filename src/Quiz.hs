@@ -27,52 +27,39 @@ type Quiz = Zipper AnsweredQuestion
 
 data Direction = Up | Down
 
-type QuizTaker m a = MState Quiz m a
+next, prev :: Quiz -> Quiz
+next = right
+prev = left
 
-next :: (MonadIO m) => QuizTaker m ()
-next = modifyM (\s -> ((), right s))
-
-prev :: (MonadIO m) => QuizTaker m ()
-prev = modifyM (\s -> ((), left s))
-
-curr :: (MonadIO m) => QuizTaker m Question
+curr :: Quiz -> Question
 curr = fst <$> currAnswer
 
-currAnswer :: (MonadIO m) => QuizTaker m AnsweredQuestion
-currAnswer = cursor <$> get
+currAnswer :: Quiz -> AnsweredQuestion
+currAnswer = cursor
 
-hasNext :: (MonadIO m) => QuizTaker m Bool
-hasNext = do
-  not . endp . Z.right <$> get
-
-hasPrev :: (MonadIO m) => QuizTaker m Bool
-hasPrev = do
-  not . Z.beginp . Z.left <$> get
+hasNext, hasPrev :: Quiz -> Bool
+hasNext = not . endp . Z.right
+hasPrev = not . Z.beginp . Z.left
 
 validAnswer :: Int -> Question -> Bool
 validAnswer n (Question _ ans _) = n >= 1 && n <= totalAnswers
   where
     totalAnswers = length ans
 
-answerCurr :: (MonadIO m) => Int -> QuizTaker m (Maybe (Int, Int))
-answerCurr n = do
-  s <- get
-  x <- curr
-  if validAnswer n x
-    then do
-      put $ replace (x, Just n) s
-      return . Just $ (n, correct x)
-    else return Nothing
+answerCurr :: Int -> Quiz -> Maybe Quiz
+answerCurr n q
+  | validAnswer n current = Just (replace (current, Just n) q)
+  | otherwise = Nothing
+  where
+    current = curr q
 
--- Can easily reduce this down
-directionalAnswerCurr :: (MonadIO m) => Direction -> QuizTaker m (Int, Int)
-directionalAnswerCurr d = do
-  (Question _ a ci, maybe) <- currAnswer
-  let totalAnswers = length a
-  let curr = fromMaybe 0 maybe
-  let answer = direction d curr totalAnswers
-  answerCurr answer
-  return (answer, ci)
+directionalAnswerCurr :: Direction -> Quiz -> Quiz
+directionalAnswerCurr d quiz =
+  let (Question _ a ci, maybe) = currAnswer quiz
+      totalAnswers = length a
+      curr = fromMaybe 0 maybe
+      answer = direction d curr totalAnswers
+   in fromMaybe quiz (answerCurr answer quiz)
   where
     direction Up curr totalAnswers =
       if curr < totalAnswers
