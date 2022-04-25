@@ -1,13 +1,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-import CLI (numberAnswers)
 import Control.Monad ()
 import Data.Char (isDigit)
 import Data.Either (isLeft)
 import Data.List (isInfixOf, isSubsequenceOf)
 import QuestionParser (parseQuestions)
-import Quiz (Question (Question), QuestionList, Quiz, shuffleQuestions, toPOSIXFileString, toWindowsFileString)
+import Quiz (Question (Question), QuestionList, Quiz, shuffleQuestions)
 import System.Random (newStdGen)
 import Test.QuickCheck
   ( Arbitrary (arbitrary),
@@ -26,7 +25,7 @@ import Text.ParserCombinators.Parsec
   ( ParseError,
   )
 import Unit (runUnitTest)
-import Utils (allTrue, boundWrapAround, joinDelim)
+import Utils (allTrue, boundWrapAround, joinDelim, numberStrings)
 
 instance Arbitrary Question where
   arbitrary = do
@@ -40,20 +39,6 @@ invalidLines ('*' : _) = True
 invalidLines ('\r' : _) = True
 invalidLines [] = True
 invalidLines _ = False
-
-prop_posixFileStringParseCorrectly :: QuestionList -> Bool
-prop_posixFileStringParseCorrectly s =
-  let res = (parseQuestions . toPOSIXFileString) s
-   in case res of
-        Left err -> False
-        Right quiz -> quiz == s
-
-prop_windowsFileStringParseCorrectly :: QuestionList -> Bool
-prop_windowsFileStringParseCorrectly s =
-  let res = (parseQuestions . toWindowsFileString) s
-   in case res of
-        Left err -> False
-        Right quiz -> quiz == s
 
 prop_shuffleQuestionsShouldShuffle :: Test.QuickCheck.Property.Property
 prop_shuffleQuestionsShouldShuffle = monadicIO $ do
@@ -72,7 +57,7 @@ prop_invalidStringFails = do
 
 prop_numberLines :: [String] -> Bool
 prop_numberLines s =
-  let n = numberAnswers s
+  let n = numberStrings s
    in concatMap show [1 .. length s] `isSubsequenceOf` n
 
 newtype FakeGetLine a = FakeGetLine a
