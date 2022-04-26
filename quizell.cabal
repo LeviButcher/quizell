@@ -66,6 +66,7 @@ executable frontend
       , ghcjs-base
       , quizell
       , directory
+      , time
       
     default-language: Haskell2010
 

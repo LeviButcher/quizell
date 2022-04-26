@@ -21,7 +21,7 @@ data QuizResults = QuizResults
     endTime :: UTCTime,
     allotedTime :: Int
   }
-  deriving (Show, Read)
+  deriving (Show, Read, Eq)
 
 getResults :: Taker -> TestFile -> Q.Quiz -> UTCTime -> UTCTime -> Int -> QuizResults
 getResults t tf q start end alloted =
