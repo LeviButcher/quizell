@@ -33,6 +33,12 @@ import Miso.String
 
 -- NOTE: Doing the Time Limit would make it easier to do the Results
 
+
+-- DEPLOYMENT
+-- 1. Figure out how to copy css to deployment index.html
+-- 2. Figure out how to either make synmlink into a pure copy
+-- OR Run pipeline that just deploys that folder
+
 fakeQuestionList :: Q.QuestionList
 fakeQuestionList = [ 
   Q.Question {

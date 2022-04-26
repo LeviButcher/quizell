@@ -20,7 +20,7 @@ layout :: (Model -> View Action) -> Model -> View Action
 layout f m = main_ [] [styleSheet, title, va]
   where
     va = f m
-    styleSheet = link_ [rel_ "stylesheet", href_ "file:///home/levi/Projects/quizell/frontend/quizell.css"]
+    styleSheet = link_ [rel_ "stylesheet", href_ "./quizell.css"]
     title = h1_ [] [text "Quizell! - the haskell quiz taker"]
 
 viewModel :: Model -> View Action
