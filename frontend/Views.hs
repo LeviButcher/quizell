@@ -15,7 +15,6 @@ import qualified QuizCLI as CLI
 import qualified QuizResults as R
 
 -- Vomiting that theres no way to put the style sheet in a head tag
--- TODO: Figure out a way to keep the css and index.html beside each other
 layout :: (Model -> View Action) -> Model -> View Action
 layout f m = main_ [] [styleSheet, title, va]
   where
@@ -34,8 +33,8 @@ viewHome :: Model -> View Action
 viewHome m =
   div_
     []
-    [ text "Welcome HOME",
-      button_ [onClick QuizFormStart] [text "Select a Quiz File"]
+    [ h2_ [] [text "Welcome HOME"],
+      div_ [] [button_ [onClick QuizFormStart] [text "Select a Quiz File"]]
     ]
 
 -- Maybe Wrap in Dialog

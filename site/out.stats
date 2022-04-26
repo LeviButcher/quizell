@@ -4,19 +4,19 @@ ListZipper-1.2.0.2-2W8jZ6nU1L0Ib8OGfswDSH:3766
 aeson-1.4.2.0-6oFZmLVQz2fGtrfaZYcFm5:42162
 base:                    418153
 containers-0.6.0.1-BAqcfV1UBBeCIRjPbUYeSG:28404
-ghc-prim:                78040
+ghc-prim:                77991
 ghcjs-base-0.2.0.0-JozYZ7GHc7JEfhDrWZm3NT:42701
 ghcjs-prim-0.1.1.0-EXzjGVHQlAS2XAXcu0iCbS:3783
 integer-gmp:             2221
 integer-logarithms-1.0.3-8EbIvyaPt1VK2rKaCK88I2:1272
 jsaddle-0.9.7.0-K7HTtX94YSIf0dlSHLERg:46403
-main:                    109059
-miso-1.8.0.0-2TEOtRlVfBi1qwxjiEHDA2:89006
+main:                    109010
+miso-1.8.0.0-2TEOtRlVfBi1qwxjiEHDA2:89007
 parsec-3.1.13.0-GJrqKHKDQILBRmd9WJB71g:33966
 primitive-0.6.4.0-Ix68lo67v0n3y1QMYDPFlz:15527
 quizell-0.1.0.0-AZG4VTt9FymDcZbx37SYJs:21871
 scientific-0.3.6.2-GYzjCtWA1vQ45VE9CYiZoV:720228
-tagsoup-0.14.8-Ga7WGvMMojPLQkXD6zO6rL:107293
+tagsoup-0.14.8-Ga7WGvMMojPLQkXD6zO6rL:107292
 text-1.2.3.1-2mMWCa8HNEL4R4p8nnvwO2:2794
 time-1.8.0.2-3d3i5aGvKEfEHwUSNgliL4:21877
 unordered-containers-0.2.9.0-FFYvp66GotsBzKKo1KOI6a:658
@@ -100,7 +100,7 @@ ghc-prim
     GHC.Classes:                        451
     GHC.IntWord64:                      1747
     GHC.Tuple:                          125
-    GHC.Types:                          69022
+    GHC.Types:                          68973
 
 ghcjs-base-0.2.0.0-JozYZ7GHc7JEfhDrWZm3NT
     Data.JSString:                      164
@@ -133,7 +133,7 @@ jsaddle-0.9.7.0-K7HTtX94YSIf0dlSHLERg
 
 main
     Main:                               26214
-    Model:                              14356
+    Model:                              14307
     Views:                              68489
 
 miso-1.8.0.0-2TEOtRlVfBi1qwxjiEHDA2
@@ -146,7 +146,7 @@ miso-1.8.0.0-2TEOtRlVfBi1qwxjiEHDA2
     Miso.FFI:                           2591
     Miso.Html.Element:                  329
     Miso.Html.Event:                    1071
-    Miso.Html.Property:                 31235
+    Miso.Html.Property:                 31236
     Miso.Html.Types:                    1540
     Miso.String:                        7219
 
@@ -171,7 +171,7 @@ tagsoup-0.14.8-Ga7WGvMMojPLQkXD6zO6rL
     Text.HTML.TagSoup.Entity:           47400
     Text.HTML.TagSoup.Implementation:   934
     Text.HTML.TagSoup.Manual:           1
-    Text.HTML.TagSoup.Options:          53085
+    Text.HTML.TagSoup.Options:          53084
     Text.HTML.TagSoup.Specification:    4703
     Text.HTML.TagSoup.Tree:             1
     Text.HTML.TagSoup.Type:             502
@@ -205,5 +205,5 @@ vector-0.12.0.3-Ljxp3Ug7QBk3GWhyQE0Ewc
 
 
 
-packed metadata: 1720673
+packed metadata: 1720875
 
