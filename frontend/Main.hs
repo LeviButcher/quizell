@@ -24,6 +24,7 @@ import Miso.String
 -- [x] Calculate and Show Results
 -- [x] Handle process of upload quiz file
 -- [] Make it pretty with CSS
+-- [] Setup Deployment (Probably on netifly)
 
 -- Extra TODO
 -- [] Store Result in LocalStorage As Log
