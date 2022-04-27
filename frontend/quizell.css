@@ -1,3 +1,212 @@
+/* gets some jank from this loading a second late */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,900&display=swap');
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+
+
+html,
 body {
-    background: white;
+    /* Variables */
+    --main-bg-color: brown;
+
+    --base_purp: 275deg 69%;
+    --purp: hsl(var(--base_purp) 42%);
+    --purp_light: hsl(var(--base_purp) 90%);
+    --purp_dark: hsl(var(--base_purp) 25%);
+
+    --base_yellow: 57deg 89%;
+    --yellow: hsl(var(--base_yellow) 60%);
+    --yellow_light: hsl(var(--base_yellow) 90%);
+    --yellow_dark: hsl(var(--base_yellow) 40%);
+
+    --black: hsl(var(--base_purp) 20%);
+    --white: hsl(var(--base_purp) 100%);
+    --gray: #3f3f3f;
+
+    --spacing: 1em;
+
+
+    /* Fonts */
+    font-family: 'Roboto', sans-serif;
+    font-size: 16pt;
+
+    /* Background */
+    background-color: var(--white);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin-top: 0;
+}
+
+/* Hx Tags */
+h1 {
+    color: var(--purp_dark);
+    font-weight: 900;
+    font-size: 3em;
+    border-bottom: 1px solid var(--black);
+}
+
+h2 {
+    color: var(--purp);
+    font-weight: 700;
+    font-size: 2.5em;
+}
+
+h3,
+h4,
+h5,
+h6 {
+    color: var(--black);
+}
+
+h3 {
+    font-size: 3em;
+}
+
+h4 {
+    font-size: 2.5em;
+}
+
+h5 {
+    font-size: 2em;
+}
+
+h6 {
+    font-size: 1em;
+}
+
+/* Button Styles */
+
+button {
+    padding: 0.5em 1em;
+    border-radius: 5px;
+    font-size: 1em;
+
+    background-color: var(--gray);
+    color: var(--white);
+    border: 1px solid var(--black);
+}
+
+.button_light {
+    background-color: var(--purp_light);
+    color: var(--black);
+    border: 1px solid var(--purp);
+}
+
+.button_dark {
+    background-color: var(--purp_dark);
+    color: var(--white);
+    border: 1px solid var(--purp);
+}
+
+.button_large {
+    font-size: 2rem;
+}
+
+main {
+    max-width: 1000px;
+    margin: auto;
+}
+
+/* Forms/Inputs */
+
+form {
+    display: grid;
+    gap: var(--spacing);
+}
+
+form>header>h2 {
+    border-bottom: 1px solid var(--black);
+}
+
+form>footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing);
+}
+
+label,
+input {
+    display: block;
+    /* width: 100%; */
+}
+
+label+input {
+    margin-bottom: calc(2 * var(--spacing));
+}
+
+.card {
+    border-radius: 5px;
+    border: 3px solid var(--gray);
+    box-shadow: 10px 10px 5px 5px var(--gray);
+    padding: var(--spacing);
+}
+
+
+.checkbox_group {
+    padding: var(--spacing);
+    display: grid;
+    grid-template-rows: 1fr;
+    gap: var(--spacing);
+}
+
+
+.checkbox {
+    display: flex;
+    flex-flow: row-reverse;
+    align-items: center;
+    justify-content: flex-end;
+    gap: calc(.5 * var(--spacing))
+}
+
+.checkbox>label+input {
+    margin-bottom: 0;
+}
+
+
+/* Quiz View - Shown when taking a quiz */
+.quizView {
+    display: grid;
+    gap: calc(5 * var(--spacing));
+}
+
+.quizView>header {
+    position: relative;
+    display: flex;
+    gap: var(--spacing);
+    flex-flow: row wrap;
+}
+
+.quizView>header>progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 5px;
+}
+
+progress[value] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+progress[value]::-webkit-progress-value,
+progress[value]::-moz-progress-bar {
+    background-color: var(--purp);
+}
+
+
+.home_menu {
+    display: flex;
+    gap: var(--spacing);
 }

@@ -2,25 +2,25 @@ code size summary per package:
 
 ListZipper-1.2.0.2-2W8jZ6nU1L0Ib8OGfswDSH:3766
 aeson-1.4.2.0-6oFZmLVQz2fGtrfaZYcFm5:42162
-base:                    418153
+base:                    418006
 containers-0.6.0.1-BAqcfV1UBBeCIRjPbUYeSG:28404
-ghc-prim:                77991
-ghcjs-base-0.2.0.0-JozYZ7GHc7JEfhDrWZm3NT:42701
-ghcjs-prim-0.1.1.0-EXzjGVHQlAS2XAXcu0iCbS:3783
+ghc-prim:                78279
+ghcjs-base-0.2.0.0-JozYZ7GHc7JEfhDrWZm3NT:42783
+ghcjs-prim-0.1.1.0-EXzjGVHQlAS2XAXcu0iCbS:3784
 integer-gmp:             2221
 integer-logarithms-1.0.3-8EbIvyaPt1VK2rKaCK88I2:1272
 jsaddle-0.9.7.0-K7HTtX94YSIf0dlSHLERg:46403
-main:                    109010
-miso-1.8.0.0-2TEOtRlVfBi1qwxjiEHDA2:89007
-parsec-3.1.13.0-GJrqKHKDQILBRmd9WJB71g:33966
+main:                    116438
+miso-1.8.0.0-2TEOtRlVfBi1qwxjiEHDA2:89926
+parsec-3.1.13.0-GJrqKHKDQILBRmd9WJB71g:34089
 primitive-0.6.4.0-Ix68lo67v0n3y1QMYDPFlz:15527
-quizell-0.1.0.0-AZG4VTt9FymDcZbx37SYJs:21871
-scientific-0.3.6.2-GYzjCtWA1vQ45VE9CYiZoV:720228
-tagsoup-0.14.8-Ga7WGvMMojPLQkXD6zO6rL:107292
-text-1.2.3.1-2mMWCa8HNEL4R4p8nnvwO2:2794
-time-1.8.0.2-3d3i5aGvKEfEHwUSNgliL4:21877
+quizell-0.1.0.0-AZG4VTt9FymDcZbx37SYJs:23399
+scientific-0.3.6.2-GYzjCtWA1vQ45VE9CYiZoV:720232
+tagsoup-0.14.8-Ga7WGvMMojPLQkXD6zO6rL:107030
+text-1.2.3.1-2mMWCa8HNEL4R4p8nnvwO2:2793
+time-1.8.0.2-3d3i5aGvKEfEHwUSNgliL4:21608
 unordered-containers-0.2.9.0-FFYvp66GotsBzKKo1KOI6a:658
-vector-0.12.0.3-Ljxp3Ug7QBk3GWhyQE0Ewc:13221
+vector-0.12.0.3-Ljxp3Ug7QBk3GWhyQE0Ewc:13212
 
 
 code size per module:
@@ -38,7 +38,7 @@ base
     Data.Fixed:                         244
     Data.Functor.Identity:              10260
     Data.OldList:                       43566
-    Data.Typeable.Internal:             9655
+    Data.Typeable.Internal:             9667
     Foreign.C.Error:                    873
     Foreign.Marshal.Alloc:              2644
     Foreign.Storable:                   2507
@@ -51,7 +51,7 @@ base
     GHC.Exception:                      2326
     GHC.Exception.Type:                 5169
     GHC.Fingerprint:                    546
-    GHC.Fingerprint.Type:               35943
+    GHC.Fingerprint.Type:               35777
     GHC.Float:                          10824
     GHC.Foreign:                        160
     GHC.ForeignPtr:                     1450
@@ -75,7 +75,7 @@ base
     GHC.MVar:                           113
     GHC.Maybe:                          1506
     GHC.Num:                            113
-    GHC.Ptr:                            9945
+    GHC.Ptr:                            9952
     GHC.Read:                           6357
     GHC.Real:                           1
     GHC.STRef:                          21120
@@ -100,7 +100,7 @@ ghc-prim
     GHC.Classes:                        451
     GHC.IntWord64:                      1747
     GHC.Tuple:                          125
-    GHC.Types:                          68973
+    GHC.Types:                          69261
 
 ghcjs-base-0.2.0.0-JozYZ7GHc7JEfhDrWZm3NT
     Data.JSString:                      164
@@ -108,7 +108,7 @@ ghcjs-base-0.2.0.0-JozYZ7GHc7JEfhDrWZm3NT
     Data.JSString.Internal.Fusion.Types:110
     Data.JSString.Internal.Type:        294
     Data.JSString.Text:                 584
-    GHCJS.Foreign.Internal:             37102
+    GHCJS.Foreign.Internal:             37184
     GHCJS.Marshal:                      1
     GHCJS.Marshal.Internal:             170
     GHCJS.Marshal.Pure:                 1
@@ -117,7 +117,7 @@ ghcjs-base-0.2.0.0-JozYZ7GHc7JEfhDrWZm3NT
 
 ghcjs-prim-0.1.1.0-EXzjGVHQlAS2XAXcu0iCbS
     GHCJS.Prim:                         2329
-    GHCJS.Prim.Internal:                1454
+    GHCJS.Prim.Internal:                1455
 
 integer-gmp
     GHC.Integer.Type:                   2221
@@ -132,28 +132,28 @@ jsaddle-0.9.7.0-K7HTtX94YSIf0dlSHLERg
     Language.Javascript.JSaddle.Value:  40146
 
 main
-    Main:                               26214
-    Model:                              14307
-    Views:                              68489
+    Main:                               27992
+    Model:                              19956
+    Views:                              68490
 
 miso-1.8.0.0-2TEOtRlVfBi1qwxjiEHDA2
     Miso:                               892
     Miso.Delegate:                      4073
     Miso.Diff:                          1
     Miso.Effect:                        324
-    Miso.Event.Decoder:                 20808
+    Miso.Event.Decoder:                 20809
     Miso.Event.Types:                   18923
-    Miso.FFI:                           2591
+    Miso.FFI:                           3205
     Miso.Html.Element:                  329
-    Miso.Html.Event:                    1071
+    Miso.Html.Event:                    1222
     Miso.Html.Property:                 31236
-    Miso.Html.Types:                    1540
+    Miso.Html.Types:                    1693
     Miso.String:                        7219
 
 parsec-3.1.13.0-GJrqKHKDQILBRmd9WJB71g
     Text.Parsec.Char:                   9903
-    Text.Parsec.Combinator:             15151
-    Text.Parsec.Error:                  1974
+    Text.Parsec.Combinator:             15149
+    Text.Parsec.Error:                  2099
     Text.Parsec.Pos:                    6937
     Text.Parsec.Prim:                   1
 
@@ -161,17 +161,17 @@ primitive-0.6.4.0-Ix68lo67v0n3y1QMYDPFlz
     Data.Primitive.Array:               15527
 
 quizell-0.1.0.0-AZG4VTt9FymDcZbx37SYJs
-    QuestionParser:                     9769
+    QuestionParser:                     11297
     Quiz:                               12102
 
 scientific-0.3.6.2-GYzjCtWA1vQ45VE9CYiZoV
-    Data.Scientific:                    720228
+    Data.Scientific:                    720232
 
 tagsoup-0.14.8-Ga7WGvMMojPLQkXD6zO6rL
     Text.HTML.TagSoup.Entity:           47400
     Text.HTML.TagSoup.Implementation:   934
     Text.HTML.TagSoup.Manual:           1
-    Text.HTML.TagSoup.Options:          53084
+    Text.HTML.TagSoup.Options:          52822
     Text.HTML.TagSoup.Specification:    4703
     Text.HTML.TagSoup.Tree:             1
     Text.HTML.TagSoup.Type:             502
@@ -179,11 +179,11 @@ tagsoup-0.14.8-Ga7WGvMMojPLQkXD6zO6rL
 
 text-1.2.3.1-2mMWCa8HNEL4R4p8nnvwO2
     Data.Text.Array:                    670
-    Data.Text.Internal:                 2124
+    Data.Text.Internal:                 2123
 
 time-1.8.0.2-3d3i5aGvKEfEHwUSNgliL4
     Data.Time.Calendar.Gregorian:       2186
-    Data.Time.Calendar.MonthDay:        3804
+    Data.Time.Calendar.MonthDay:        3535
     Data.Time.Calendar.OrdinalDate:     3066
     Data.Time.Calendar.Private:         946
     Data.Time.Clock.Internal.CTimespec: 1
@@ -201,9 +201,9 @@ unordered-containers-0.2.9.0-FFYvp66GotsBzKKo1KOI6a
 
 vector-0.12.0.3-Ljxp3Ug7QBk3GWhyQE0Ewc
     Data.Vector:                        498
-    Data.Vector.Mutable:                12723
+    Data.Vector.Mutable:                12714
 
 
 
-packed metadata: 1720875
+packed metadata: 1727686
 

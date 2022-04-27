@@ -23,8 +23,8 @@ import Miso.String
 -- MVC TODO
 -- [x] Calculate and Show Results
 -- [x] Handle process of upload quiz file
--- [] Make it pretty with CSS
--- [] Setup Deployment (Probably on netifly)
+-- [x] Make it pretty with CSS
+-- [x] Setup Deployment (Probably on netifly)
 
 -- Extra TODO
 -- [] Store Result in LocalStorage As Log
@@ -83,8 +83,7 @@ createModel q t s = Model q s t Home
 
 updateModel :: Action -> Model -> Effect Action Model
 updateModel Init m = noEff m
--- TODO: How to handle when their is no next -- USE LENS --
-updateModel Next m = noEff $ m {quiz=Q.next (quiz m)} 
+updateModel Next m@Model{quiz} = noEff $ m {quiz=if Q.hasNext quiz then Q.next quiz else quiz} 
 updateModel Finish m = noEff $ m {state=Finished}
 updateModel (Answer a) m = answerCurr a m
 updateModel Reset m = noEff $ m{state=Home}
@@ -92,6 +91,8 @@ updateModel QuizFormStart m = noEff $ m {state = UploadQuestions}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
 updateModel (QuizForm name qList) m = 
     noEff $ m {state = RunningQuiz, taker = name, quiz = Q.createQuiz qList}
+updateModel (ShowPastResults) m = noEff $ m {state = PastResults}
+  
 
 answerCurr :: Int -> Model -> Effect Action Model
 answerCurr i m = noEff $ m {quiz = newQuiz}

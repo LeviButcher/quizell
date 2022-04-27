@@ -23,6 +23,7 @@ data State
   | UploadQuestions -- Show Form Dialog for quiz
   | RunningQuiz -- Show Taking Quiz Screen
   | Finished -- Show Results Screen
+  | PastResults
   deriving (Eq, Show)
 
 -- | Sum type for application events
@@ -33,6 +34,7 @@ data Action
   | QuizForm String Q.QuestionList -- Parsed info from Quiz Form
   | Next -- Change quiz to next question
   | Answer Int -- Sets answer for current question
+  | ShowPastResults -- Sets State to Past Results
   | Finish -- Change Model State to Finished
   | Reset -- Change Model State to Home
   deriving (Show, Eq)
