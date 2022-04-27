@@ -16,10 +16,9 @@ import qualified QuizResults as R
 
 -- Vomiting that theres no way to put the style sheet in a head tag
 layout :: (Model -> View Action) -> Model -> View Action
-layout f m = main_ [] [styleSheet, title, va]
+layout f m = main_ [] [title, va]
   where
     va = f m
-    styleSheet = link_ [rel_ "stylesheet", href_ "./quizell.css"]
     title = h1_ [] [text "Quizell! - the haskell quiz taker"]
 
 viewModel :: Model -> View Action
