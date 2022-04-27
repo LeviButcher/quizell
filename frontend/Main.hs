@@ -19,6 +19,7 @@ import Control.Concurrent.MVar
 import GHCJS.Foreign.Callback
 import GHCJS.Types
 import Miso.String
+import qualified ResultStore as RS
 
 -- MVC TODO
 -- [x] Calculate and Show Results
@@ -27,7 +28,8 @@ import Miso.String
 -- [x] Setup Deployment (Probably on netifly)
 
 -- Extra TODO
--- [] Store Result in LocalStorage As Log
+-- [x] Store Result in LocalStorage As Log
+-- [] Show Results on All results page
 -- [] Time Limit on quiz
 -- [] Have Default Quizzes Available to take
 
@@ -63,9 +65,8 @@ fakeQuestionList = [
 main :: IO ()
 main = do
   let quiz = Q.createQuiz fakeQuestionList
-      taker = "Levi"
+      taker = "levi"
   time <- getCurrentTime
-
   startApp 
     App {
       initialAction =  Init,
@@ -79,19 +80,25 @@ main = do
     }
 
 createModel :: Q.Quiz -> UTCTime -> String -> Model
-createModel q t s = Model q s t Home
+createModel q t s = Model q s t Home []
 
 updateModel :: Action -> Model -> Effect Action Model
 updateModel Init m = noEff m
 updateModel Next m@Model{quiz} = noEff $ m {quiz=if Q.hasNext quiz then Q.next quiz else quiz} 
-updateModel Finish m = noEff $ m {state=Finished}
+updateModel Finish m = storeResultsInStorage m *> noEff (m {state=Finished})
 updateModel (Answer a) m = answerCurr a m
 updateModel Reset m = noEff $ m{state=Home}
 updateModel QuizFormStart m = noEff $ m {state = UploadQuestions}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
 updateModel (QuizForm name qList) m = 
     noEff $ m {state = RunningQuiz, taker = name, quiz = Q.createQuiz qList}
-updateModel (ShowPastResults) m = noEff $ m {state = PastResults}
+updateModel GetPastResults m = m <# (ShowPastResults <$> RS.readResults)
+updateModel (ShowPastResults results) m = noEff $ m {state = PastResults, pastResults=results}
+
+storeResultsInStorage :: Model -> Effect Action Model
+storeResultsInStorage m = m <# do
+  RS.storeResults m
+  return Init
   
 
 answerCurr :: Int -> Model -> Effect Action Model

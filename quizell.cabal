@@ -60,6 +60,12 @@ executable frontend
   else
     hs-source-dirs: frontend
     ghcjs-options: -Wall -dedupe
+
+    other-modules:
+        ResultStore
+      , Views
+      , Model
+
     build-depends:
         miso
       , base >=4.2 && <5
@@ -67,6 +73,9 @@ executable frontend
       , quizell
       , directory
       , time
+      , jsaddle
+      , text
+
       
     default-language: Haskell2010
 

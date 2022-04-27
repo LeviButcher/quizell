@@ -36,7 +36,7 @@ viewHome m =
     [ h2_ [] [text "Welcome - Please Choose a Option"],
       menu_ [class_ "home_menu"] [
         button_ [onClick QuizFormStart] [text "Take a Quiz!"],
-        button_ [onClick ShowPastResults] [text "View Past Results"]
+        button_ [onClick GetPastResults] [text "View Past Results"]
         ]
     ]
 
@@ -60,8 +60,8 @@ viewUploadQuestion m =
 
 viewFinishScreen :: Model -> View Action
 viewFinishScreen Model {quiz, taker, startTime} =
-  div_
-    []
+  section_
+    [class_ "card"]
     [ result res,
       resetButton
     ]
@@ -73,13 +73,14 @@ viewFinishScreen Model {quiz, taker, startTime} =
 result :: R.QuizResults -> View Action
 result R.QuizResults {total, correct, taker, testFile, startTime, endTime, allotedTime} =
   article_
-    []
-    [ header_ [] [h3_ [] [ezText $ "Results for: " ++ taker]],
+    [class_ "card"]
+    [ header_ [] [h3_ [] [text "Results"]],
       div_
         []
         [ ul_
             []
-            [ li_ [] [ezText $ "Test File: " ++ testFile],
+            [ li_ [] [ezText $ "Taker: " ++ taker],
+              li_ [] [ezText $ "Test File: " ++ testFile],
               li_ [] [ezText $ "Alloted Time: " ++ show allotedTime],
               li_ [] [ezText $ "Total Correct: " ++ show correct],
               li_ [] [ezText $ "Total Questions: " ++ show total],
@@ -137,8 +138,7 @@ answers (Q.Question _ answers _, ans) = fieldset_ [class_ "checkbox_group"] (leg
           input_ [type_ "checkbox", value_ (ms i), checked_ (isChecked ans i), 
             onClick (Answer i), id_ . ms $ x]
         ]
-      
-      
+        
     isChecked :: Maybe Int -> Int -> Bool
     isChecked Nothing = const False
     isChecked (Just a) = (== a)
@@ -150,4 +150,9 @@ ezText = text . ms
 
 
 viewPastResults :: Model -> View Action
-viewPastResults m = div_ [] [text "Past Results Screen"]
+viewPastResults m@Model{pastResults} = div_ [] [
+    header_ [] [h2_ [] [text "Past Results"]],
+    section_ [class_ "pastResults"] results,
+    footer_ [] [ text "Back to home goes here"]
+  ]
+  where results = result <$> pastResults

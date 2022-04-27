@@ -10,11 +10,13 @@ import qualified Quiz as Q
 import qualified QuizCLI as CLI
 import qualified QuizResults as R
 
+-- Should change this stuff to Maybe Types
 data Model = Model
   { quiz :: Q.Quiz,
     taker :: String,
     startTime :: UTCTime,
-    state :: State
+    state :: State,
+    pastResults :: [R.QuizResults]
   }
   deriving (Eq, Show)
 
@@ -34,7 +36,8 @@ data Action
   | QuizForm String Q.QuestionList -- Parsed info from Quiz Form
   | Next -- Change quiz to next question
   | Answer Int -- Sets answer for current question
-  | ShowPastResults -- Sets State to Past Results
+  | GetPastResults -- Load the past results and passes them to the ShowPastResults Action
+  | ShowPastResults [R.QuizResults] -- Sets State to Past Results and sets past results
   | Finish -- Change Model State to Finished
   | Reset -- Change Model State to Home
   deriving (Show, Eq)
