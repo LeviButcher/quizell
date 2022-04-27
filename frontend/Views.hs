@@ -16,10 +16,19 @@ import qualified QuizResults as R
 
 -- Vomiting that theres no way to put the style sheet in a head tag
 layout :: (Model -> View Action) -> Model -> View Action
-layout f m = main_ [] [title, va]
+layout f m = section_ [class_ "siteLayout"] [
+    title, 
+    main_ [] [va],
+    footer
+  ]
   where
     va = f m
-    title = h1_ [] [text "Quizell! - the haskell quiz taker"]
+    title = header_ [] [h1_ [] [text "Quizell! - the haskell quiz taker"]]
+    footer = footer_ [] [
+        span_ [] [text "Made with Haskell + Miso by Levi Butcher"],
+        a_ [href_ "https://github.com/LeviButcher/quizell"] [text "View on Github"]
+
+      ]
 
 viewModel :: Model -> View Action
 viewModel m@Model {state} = case state of
@@ -74,7 +83,7 @@ result :: R.QuizResults -> View Action
 result R.QuizResults {total, correct, taker, testFile, startTime, endTime, allotedTime} =
   article_
     [class_ "card"]
-    [ header_ [] [h3_ [] [text "Results"]],
+    [ header_ [] [h4_ [] [text "Results"]],
       div_
         []
         [ ul_
@@ -150,9 +159,9 @@ ezText = text . ms
 
 
 viewPastResults :: Model -> View Action
-viewPastResults m@Model{pastResults} = div_ [] [
+viewPastResults m@Model{pastResults} = section_ [class_ "pastResultsSection"] [
     header_ [] [h2_ [] [text "Past Results"]],
     section_ [class_ "pastResults"] results,
-    footer_ [] [ text "Back to home goes here"]
+    footer_ [] [ button_  [onClick Reset, class_ "button_dark"] [text "To Home"]]
   ]
   where results = result <$> pastResults

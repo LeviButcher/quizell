@@ -30,16 +30,20 @@ body {
     --gray: #3f3f3f;
 
     --spacing: 1em;
-
+    --fontSize: 16pt;
+    --footerSize: calc(3 * var(--fontSize));
+    --siteWidth: 1100px;
 
     /* Fonts */
     font-family: 'Roboto', sans-serif;
-    font-size: 16pt;
+    font-size: var(--fontSize);
 
+    margin: 0;
 }
 
 body {
-    height: 100vh;
+    position: relative;
+    /* Ensures footer is position correctly  */
     background: repeating-linear-gradient(-45deg,
             var(--white),
             var(--white) 10%,
@@ -121,10 +125,7 @@ button {
     font-size: 2rem;
 }
 
-main {
-    max-width: 1000px;
-    margin: auto;
-}
+
 
 /* Forms/Inputs */
 
@@ -228,5 +229,37 @@ progress[value]::-moz-progress-bar {
     display: grid;
     /* Need to make this change amount based on width */
     grid-template-columns: auto auto;
+    gap: calc(2 * var(--spacing)) var(--spacing);
+}
+
+.siteLayout {
+    min-height: calc(100vh);
+    margin: auto;
+    max-width: var(--siteWidth);
+    padding: 0 var(--spacing);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
     gap: var(--spacing);
+}
+
+.siteLayout>footer {
+    /* TODO - Make this take up full page width while being aligned with other content */
+    background-color: var(--black);
+    padding: var(--spacing);
+    color: var(--white);
+    margin-left: calc(-1 * var(--spacing));
+    margin-right: calc(-1 * var(--spacing));
+
+    display: flex;
+    justify-content: space-between;
+}
+
+.pastResultsSection {
+    display: grid;
+    gap: var(--spacing);
+}
+
+.pastResultsSection>footer {
+    display: flex;
+    justify-content: space-between;
 }
