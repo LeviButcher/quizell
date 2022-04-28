@@ -47,6 +47,16 @@ body {
             var(--white) 10%,
             var(--purp_lighter) 10%,
             var(--purp_lighter) 20%);
+
+    background-size: 200% 200%;
+    animation: barberpole 50s linear infinite;
+}
+
+/* From: https: //css-tricks.com/books/fundamental-css-tactics/striped-barberpole-animation/ */
+@keyframes barberpole {
+    100% {
+        background-position: 100% 100%;
+    }
 }
 
 a:link {
@@ -245,7 +255,6 @@ progress[value]::-moz-progress-bar {
 
     gap: var(--spacing);
     margin: auto;
-    outline: 1px solid red;
 }
 
 .siteLayout>main {
