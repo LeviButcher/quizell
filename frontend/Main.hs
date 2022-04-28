@@ -20,6 +20,7 @@ import GHCJS.Foreign.Callback
 import GHCJS.Types
 import Miso.String hiding (take)
 import qualified ResultStore as RS
+import System.Random (newStdGen)
 
 -- MVC TODO
 -- [x] Calculate and Show Results
@@ -73,8 +74,8 @@ updateModel (Answer a) m = answerCurr a m
 -- Quiz Config Form
 updateModel QuizFormStart m = noEff $ m {state = QuizConfig}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
-updateModel (SetQuizConfig aTime count qList) m = 
-    noEff $ m {quiz = Q.createQuiz (take count qList), allotedTime=aTime, state = RunningQuiz}
+updateModel (SetQuizConfig aTime q) m = 
+    noEff $ m {quiz=q, allotedTime=aTime, state = RunningQuiz}
 
 -- Past Results
 updateModel GetPastResults m = m <# (ShowPastResults <$> RS.getPastResults m)
@@ -111,7 +112,10 @@ handleQuizFormSubmit m = m <# do
   let eitherQuestions = parseQuestions (fromMisoString file)
   case eitherQuestions of 
     Left err -> consoleLog (ms . show $ err) >> return QuizFormStart
-    Right questions -> return $ SetQuizConfig time questionCount questions
+    Right questions -> do
+      rng <- newStdGen
+      let quiz = Q.createShuffledQuizToLength rng questionCount questions
+      return $ SetQuizConfig time quiz
 
 readFileFromForm :: IO MisoString
 readFileFromForm = do

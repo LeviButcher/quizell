@@ -75,6 +75,7 @@ executable frontend
       , time
       , jsaddle
       , text
+      , random
 
       
     default-language: Haskell2010

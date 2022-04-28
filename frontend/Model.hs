@@ -35,7 +35,7 @@ data Action
   = Init -- Starting Action of App
   | QuizFormStart -- Change model state to UploadQuiz
   | QuizFormSubmit -- Parse out inputs from UploadQuizForm
-  | SetQuizConfig Int Int Q.QuestionList -- Parsed info from Quiz Form
+  | SetQuizConfig Int Q.Quiz -- Parsed info from Quiz Form
   | Next -- Change quiz to next question
   | Answer Int -- Sets answer for current question
   | GetPastResults -- Load the past results and passes them to the ShowPastResults Action
