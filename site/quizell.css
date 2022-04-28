@@ -28,6 +28,7 @@ body {
     --black: hsl(var(--base_purp) 20%);
     --white: hsl(var(--base_purp) 100%);
     --gray: #3f3f3f;
+    --errorColor: hsl(354, 89%, 62%);
 
     --spacing: 1em;
     --fontSize: 16pt;
@@ -41,6 +42,22 @@ body {
     margin: 0;
 }
 
+@media only screen and (max-width: 700px) {
+
+    html,
+    body {
+        --fontSize: 12pt;
+    }
+}
+
+@media only screen and (max-width: 500px) {
+
+    html,
+    body {
+        --fontSize: 8pt;
+    }
+}
+
 body {
     background: repeating-linear-gradient(-45deg,
             var(--white),
@@ -52,6 +69,7 @@ body {
     animation: barberpole 50s linear infinite;
 }
 
+/* From: https: //css-tricks.com/books/fundamental-css-tactics/striped-barberpole-animation/ */
 @keyframes barberpole {
     100% {
         background-position: 100% 100%;
@@ -112,6 +130,10 @@ h6 {
     font-size: 1em;
 }
 
+p {
+    margin-top: 0;
+}
+
 /* Button Styles */
 
 button {
@@ -153,6 +175,12 @@ form>header>h2 {
     border-bottom: 1px solid var(--black);
 }
 
+.inputGroup {
+    display: grid;
+    gap: calc(.5 * var(--spacing));
+    grid-template-rows: 1fr;
+}
+
 form>footer {
     display: flex;
     justify-content: flex-end;
@@ -172,7 +200,7 @@ label+input {
 .card {
     border-radius: 5px;
     border: 3px solid var(--gray);
-    box-shadow: 10px 10px 5px 5px var(--gray);
+    box-shadow: 5px 5px 0px 0px var(--gray);
     padding: var(--spacing);
     background: var(--white);
 }
@@ -218,7 +246,8 @@ label+input {
     top: 0;
     left: 0;
     width: 100%;
-    border: 5px;
+    border-radius: 5px 5px 0 0;
+    border: 0;
 }
 
 progress[value] {
@@ -271,7 +300,6 @@ progress[value]::-moz-progress-bar {
     justify-content: space-between;
 }
 
-
 .pastResultsSection {
     display: grid;
     gap: var(--spacing);
@@ -286,4 +314,8 @@ progress[value]::-moz-progress-bar {
     max-width: var(--siteWidth);
     margin: 0 auto;
     padding: 0 var(--spacing);
+}
+
+.errorText {
+    color: var(--errorColor);
 }

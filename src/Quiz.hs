@@ -88,11 +88,9 @@ currPosition (Zip [] []) = 0
 currPosition (Zip l _) = length l + 1
 
 
-
-
 createShuffledQuizToLength :: (RandomGen gen) => gen -> Int -> [Question] -> Quiz
-createShuffledQuizToLength gen n = createQuiz . take n . shuffleQuestions gen
 createShuffledQuizToLength gen 0 = createQuiz . shuffleQuestions gen
+createShuffledQuizToLength gen n = createQuiz . take n . shuffleQuestions gen
 
 createQuiz :: [Question] -> Quiz
 createQuiz qs = fromList $ zip qs (repeat Nothing)

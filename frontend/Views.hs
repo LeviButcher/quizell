@@ -39,7 +39,7 @@ viewModel m@Model {state} = case state of
   Home -> viewHome m
   RunningQuiz -> viewTakingQuiz m
   Finished -> viewFinishScreen m
-  QuizConfig -> viewQuizConfig m
+  QuizConfig -> viewQuizConfigForm m
   PastResults -> viewPastResults m
   UserForm -> viewUserForm m
 
@@ -62,22 +62,24 @@ viewHome Model{taker=Just name} =
           ]
     ]
       
-
-          
 -- Maybe Wrap in Dialog
-viewQuizConfig :: Model -> View Action
-viewQuizConfig m =
+viewQuizConfigForm :: Model -> View Action
+viewQuizConfigForm m =
   form_
     [id_ "quizForm", onSubmit QuizFormSubmit, class_ "card"]
     [ header_ [] [h2_ [] [text "Setup Quiz"]],
       section_
         []
-        [ label_ [for_ "number"] [text "How many questions? (0 means all)"],
-          input_ [type_ "number", name_ "questions", id_ "questions", min_ "0", value_ "0"],
-          label_ [for_ "allotedTime"] [text "Alloted Time (In Seconds)"],
-          input_ [type_ "number", name_ "allotedTime", id_ "allotedTime", min_ "0", value_ "0"],
-          label_ [for_ "questionsFile"] [text "Upload Question List"],
-          input_ [type_ "File", name_ "questionsFile", id_ "questionsFile"]
+        [
+          p_ [class_ "errorText"] [text "Form errors here"],
+          div_ [class_ "inputGroup"] [
+            label_ [for_ "number"] [text "How many questions? (0 means all)"],
+            input_ [type_ "number", name_ "questions", id_ "questions", min_ "0", value_ "0"],
+            label_ [for_ "allotedTime"] [text "Alloted Time (In Seconds)"],
+            input_ [type_ "number", name_ "allotedTime", id_ "allotedTime", min_ "0", value_ "0"],
+            label_ [for_ "questionsFile"] [text "Upload Question List"],
+            input_ [type_ "File", name_ "questionsFile", id_ "questionsFile"]
+          ]
         ],
       footer_
         []
@@ -137,11 +139,13 @@ quizInfo Model{quiz, taker, allotedTime} = header_ [class_ "card"] [
     span_ [] [ezText $ "File: " ++ "?"],
     span_ [] [ezText $ "Alloted Time (In Seconds): " ++ show allotedTime],
     span_ [] [text "Elapsed Time: ?"],
-    span_ [] [ezText $ "Question " ++ show totalAnswered ++ "/" ++ show totalQuestions],
-    progress_ [max_ . ms . show $ totalQuestions, value_ . ms . show $ totalAnswered] []
+    span_ [] [ezText $ "Question " ++ show currQuestion ++ "/" ++ show totalQuestions],
+    progress_ [max_ . msShow $ totalQuestions, value_ . msShow $ totalAnswered, min_ "0"] []
   ]
   where totalQuestions = Q.total quiz
         totalAnswered = Q.totalAnswered quiz
+        currQuestion = Q.currPosition quiz
+        msShow = ms . show
 
 
 currentQuestion :: Model -> View Action
@@ -150,7 +154,7 @@ currentQuestion Model {quiz} = form_ [name_ "Quiz Question", onSubmit Finish, cl
       []
       [ h2_ [] [text (ms quest)]
       ],
-    section_ [] [answers (Q.currAnswer quiz)],
+    section_ [class_ "inputGroup"] [answers (Q.currAnswer quiz)],
     footer_
       []
       [ nextButton,
@@ -198,8 +202,11 @@ viewUserForm :: Model -> View Action
 viewUserForm m = form_ [onSubmit SubmitUserForm, class_ "card"] [
     header_ [] [h3_ [] [text "User Config Form"]],
     section_ [] [
-      label_ [for_ "name"] [text "User Name"],
-      input_ [type_ "text", id_ "name"]
+      p_ [class_ "errorText"] [text "Form errors here"],
+      div_ [class_ "inputGroup"] [
+        label_ [for_ "name"] [text "User Name"],
+        input_ [type_ "text", id_ "name"]
+      ]
     ],
     footer_ [] [
       button_ [type_ "Submit", class_ "button_dark"] [text "Submit"]
