@@ -121,7 +121,7 @@ getQuizFormData = do
     (const "Failed to parse file - Make sure a correctly formatted quiz file is selected") 
     (liftEither $ parseQuestions fileString)
   rng <- liftIO newStdGen
-  let quiz = Q.createShuffledQuizToLength rng questionCount questions
+  quiz <- liftEither $ Q.createShuffledQuizToLength rng questionCount questions
   return $ SetQuizConfig time quiz
 
 
