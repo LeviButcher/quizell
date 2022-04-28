@@ -9,6 +9,7 @@ import Data.Time.Clock
 import qualified Quiz as Q
 import qualified QuizCLI as CLI
 import qualified QuizResults as R
+import Data.Time.Clock
 
 -- Should change this stuff to Maybe Types
 data Model = Model
@@ -17,7 +18,8 @@ data Model = Model
     startTime :: UTCTime,
     state :: State,
     pastResults :: [R.QuizResults],
-    allotedTime :: Int
+    allotedTime :: Int,
+    formError :: Maybe String
   }
   deriving (Eq, Show)
 
@@ -45,4 +47,22 @@ data Action
   | ShowUserForm -- Change Model State to UserForm
   | SubmitUserForm -- User form was submitted
   | SetUserName String -- update Model with User name
+  | SetFormError String -- updates Model with form Error (Doesn't change state)
   deriving (Show, Eq)
+
+
+createModel :: Q.Quiz -> UTCTime -> Model
+createModel q t = Model { 
+    quiz=q,
+    taker=Nothing,
+    startTime=t,
+    state=Home, 
+    pastResults=[],
+    allotedTime=0,
+    formError = Nothing
+  }
+
+getModelResults :: Model -> Maybe R.QuizResults
+getModelResults Model{quiz,taker,startTime} = R.getResults <$> taker <*> Just "?" <*> 
+  Just quiz <*> Just startTime <*> Just startTime <*> Just allotedTime
+  where allotedTime = 0

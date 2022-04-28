@@ -21,6 +21,7 @@ import GHCJS.Types
 import Miso.String hiding (take)
 import qualified ResultStore as RS
 import System.Random (newStdGen)
+import Control.Monad.Except
 
 -- MVC TODO
 -- [x] Calculate and Show Results
@@ -33,7 +34,7 @@ import System.Random (newStdGen)
 -- [x] Show Results on All results page
 -- [x] Have user config form then have all Results only show that users results
 -- [x] Improve CSS within forms
--- [] Improve showing errors on forms and handling them
+-- [x] Improve showing errors on forms and handling them
 -- [] Improve Backend QuestionList to Quiz creation
 -- [] Time Limit on quiz
 -- [] Have Default Quizzes Available to take
@@ -54,16 +55,6 @@ main = do
       mountPoint = Nothing,
       logLevel = DebugPrerender
     }
-
-createModel :: Q.Quiz -> UTCTime -> Model
-createModel q t = Model { 
-    quiz=q,
-    taker=Nothing,
-    startTime=t,
-    state=Home, 
-    pastResults=[],
-    allotedTime=0
-  }
 
 updateModel :: Action -> Model -> Effect Action Model
 updateModel Init m = noEff m
@@ -89,9 +80,13 @@ updateModel ShowUserForm m = noEff $ m {state = UserForm}
 updateModel SubmitUserForm m = handleUserFormSubmit m
 updateModel (SetUserName name) m = m {taker=Just name} <# pure ShowHome
 
+-- Sets Form Information
+updateModel (SetFormError e) m = noEff $ m {formError=Just e}
+
 
 handleUserFormSubmit :: Model -> Effect Action Model
 handleUserFormSubmit m = m <# do
+  -- Ignores failure to get name
   name <- getInputValue "name"
   return $ SetUserName (fromMisoString name)
 
@@ -109,16 +104,25 @@ answerCurr i m = noEff $ m {quiz = newQuiz}
 
 handleQuizFormSubmit :: Model -> Effect Action Model
 handleQuizFormSubmit m = m <# do
-  time <- fromMisoString <$> getInputValue "allotedTime"
-  questionCount <- fromMisoString <$> getInputValue "questions"
-  file <- readFileFromForm
-  let eitherQuestions = parseQuestions (fromMisoString file)
-  case eitherQuestions of 
-    Left err -> consoleLog (ms . show $ err) >> return QuizFormStart
-    Right questions -> do
-      rng <- newStdGen
-      let quiz = Q.createShuffledQuizToLength rng questionCount questions
-      return $ SetQuizConfig time quiz
+  quizFormEither <- runExceptT getQuizFormData
+  case quizFormEither of
+    Left err -> consoleLog (ms . show $ err) >> (return $ SetFormError err)
+    Right act -> return act
+
+
+getQuizFormData :: ExceptT String IO Action 
+getQuizFormData = do
+  time <- ExceptT (fromMisoStringEither <$> getInputValue "allotedTime")
+  questionCount <- ExceptT (fromMisoStringEither <$> getInputValue "questions")
+  file <- liftIO readFileFromForm
+  fileString <- liftEither $ fromMisoStringEither file
+  questions <- withExceptT 
+    (const "Failed to parse file - Make sure a correctly formatted quiz file is selected") 
+    (liftEither $ parseQuestions fileString)
+  rng <- liftIO newStdGen
+  let quiz = Q.createShuffledQuizToLength rng questionCount questions
+  return $ SetQuizConfig time quiz
+
 
 readFileFromForm :: IO MisoString
 readFileFromForm = do
