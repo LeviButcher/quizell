@@ -18,14 +18,14 @@ import Views
 import Control.Concurrent.MVar
 import GHCJS.Foreign.Callback
 import GHCJS.Types
-import Miso.String
+import Miso.String hiding (take)
 import qualified ResultStore as RS
 
 -- MVC TODO
 -- [x] Calculate and Show Results
 -- [x] Handle process of upload quiz file
 -- [x] Make it pretty with CSS
--- [x] Setup Deployment (Probably on netifly)
+-- [x] Setup Deployment
 
 -- Extra TODO
 -- [x] Store Result in LocalStorage As Log
@@ -73,8 +73,8 @@ updateModel (Answer a) m = answerCurr a m
 -- Quiz Config Form
 updateModel QuizFormStart m = noEff $ m {state = QuizConfig}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
-updateModel (SetQuizConfig aTime qList) m = 
-    noEff $ m {quiz = Q.createQuiz qList, allotedTime=aTime, state = RunningQuiz}
+updateModel (SetQuizConfig aTime count qList) m = 
+    noEff $ m {quiz = Q.createQuiz (take count qList), allotedTime=aTime, state = RunningQuiz}
 
 -- Past Results
 updateModel GetPastResults m = m <# (ShowPastResults <$> RS.getPastResults m)
@@ -106,15 +106,16 @@ answerCurr i m = noEff $ m {quiz = newQuiz}
 handleQuizFormSubmit :: Model -> Effect Action Model
 handleQuizFormSubmit m = m <# do
   time <- fromMisoString <$> getInputValue "allotedTime"
+  questionCount <- fromMisoString <$> getInputValue "questions"
   file <- readFileFromForm
   let eitherQuestions = parseQuestions (fromMisoString file)
   case eitherQuestions of 
     Left err -> consoleLog (ms . show $ err) >> return QuizFormStart
-    Right questions -> return $ SetQuizConfig time questions
+    Right questions -> return $ SetQuizConfig time questionCount questions
 
 readFileFromForm :: IO MisoString
 readFileFromForm = do
-  fileReaderInput <- getElementById "questions"
+  fileReaderInput <- getElementById "questionsFile"
   file <- getFile fileReaderInput
   reader <- newReader
   mvar <- newEmptyMVar
