@@ -21,6 +21,7 @@ import GHCJS.Types
 import Miso.String hiding (take)
 import qualified ResultStore as RS
 import System.Random (newStdGen)
+import Control.Applicative
 import Control.Monad.Except
 
 -- MVC TODO
@@ -35,20 +36,19 @@ import Control.Monad.Except
 -- [x] Have user config form then have all Results only show that users results
 -- [x] Improve CSS within forms
 -- [x] Improve showing errors on forms and handling them
--- [] Improve Backend QuestionList to Quiz creation
+-- [x] Improve Backend QuestionList to Quiz creation
 -- [] Time Limit on quiz
--- [] Have Default Quizzes Available to take
 -- [] Show Correct Answers after quiz is finished
+-- [] Have Default Quizzes Available to take
 
 -- | Entry point for a miso application
 main :: IO ()
 main = do
-  let quiz = Q.createQuiz []
-  time <- getCurrentTime
+  defaultModel <- createDefaultModel
   startApp 
     App {
       initialAction =  Init,
-      model = createModel quiz time,
+      model = defaultModel,
       update = updateModel,
       view   = layout viewModel,
       events = defaultEvents,
@@ -62,15 +62,21 @@ updateModel Init m = noEff m
 updateModel ShowHome m = noEff $ m{state=Home}
 
 -- Quiz Actions
-updateModel Next m@Model{quiz} = noEff $ m {quiz=if Q.hasNext quiz then Q.next quiz else quiz} 
+updateModel Next m@Model{quizConfig} = noEff $ 
+  m {quizConfig=updatedQuizConfig quizConfig <|> quizConfig}
+  where 
+    updatedQuizConfig quizConfig = do
+      config@QuizConfig{quiz} <- quizConfig
+      Just $ config{quiz=if Q.hasNext quiz then Q.next quiz else quiz} 
+
 updateModel Finish m = storeResultsInStorage m *> noEff (m {state=Finished})
 updateModel (Answer a) m = answerCurr a m
 
 -- Quiz Config Form
-updateModel QuizFormStart m = noEff $ m {state = QuizConfig}
+updateModel QuizFormStart m = noEff $ m {state = QuizConfigForm}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
-updateModel (SetQuizConfig aTime q) m = 
-    noEff $ m {quiz=q, allotedTime=aTime, state = RunningQuiz}
+updateModel (SetQuizConfig config) m = 
+    noEff $ m {quizConfig=Just config, state = RunningQuiz}
 
 -- Past Results
 updateModel GetPastResults m = m <# (ShowPastResults <$> RS.getPastResults m)
@@ -99,9 +105,12 @@ storeResultsInStorage m = m <# do
   
 
 answerCurr :: Int -> Model -> Effect Action Model
-answerCurr i m = noEff $ m {quiz = newQuiz}
-  where q = quiz m
-        newQuiz = fromMaybe q (Q.answerCurr i q)
+answerCurr i m@Model{quizConfig} = noEff $ m {quizConfig=newConfig <|> quizConfig}
+  where 
+    newConfig = do 
+      config <- quizConfig
+      newQuiz <- Q.answerCurr i (quiz config)
+      Just $ config{quiz=newQuiz}
 
 handleQuizFormSubmit :: Model -> Effect Action Model
 handleQuizFormSubmit m = m <# do
@@ -113,21 +122,25 @@ handleQuizFormSubmit m = m <# do
 
 getQuizFormData :: ExceptT String IO Action 
 getQuizFormData = do
-  time <- ExceptT (fromMisoStringEither <$> getInputValue "allotedTime")
+  aTime <- ExceptT (fromMisoStringEither <$> getInputValue "allotedTime")
   questionCount <- ExceptT (fromMisoStringEither <$> getInputValue "questions")
-  file <- liftIO readFileFromForm
-  fileString <- liftEither $ fromMisoStringEither file
+  (fileName,fileContent) <- liftIO readFileFromForm
+  fileContentString <- liftEither $ fromMisoStringEither fileContent
+  fileName <- liftEither $ fromMisoStringEither fileName
   questions <- withExceptT 
     (const "Failed to parse file - Make sure a correctly formatted quiz file is selected") 
-    (liftEither $ parseQuestions fileString)
+    (liftEither $ parseQuestions fileContentString)
   rng <- liftIO newStdGen
   quiz <- liftEither $ Q.createShuffledQuizToLength rng questionCount questions
-  return $ SetQuizConfig time quiz
+  sTime <- liftIO getCurrentTime
+  return $ SetQuizConfig (QuizConfig quiz sTime aTime fileName)
 
 
-readFileFromForm :: IO MisoString
+-- Returns back both the fileName and fileContent
+readFileFromForm :: IO (MisoString, MisoString)
 readFileFromForm = do
   fileReaderInput <- getElementById "questionsFile"
+  fileName <- getFileName fileReaderInput
   file <- getFile fileReaderInput
   reader <- newReader
   mvar <- newEmptyMVar
@@ -136,7 +149,8 @@ readFileFromForm = do
       r <- getResult reader
       putMVar mvar r
   readText reader file
-  readMVar mvar
+  fileContent <- readMVar mvar
+  return $ (fileName,fileContent)
 
 foreign import javascript unsafe "$r = new FileReader();"
   newReader :: IO JSVal
@@ -155,3 +169,13 @@ foreign import javascript unsafe "$1.readAsText($2);"
 
 foreign import javascript unsafe "$r = document.getElementById($1).value;"
   getInputValue :: MisoString -> IO MisoString
+
+foreign import javascript unsafe "$r = $1.files.item(0).name;"
+  getFileName :: JSVal -> IO MisoString
+
+--  function showname () {
+--       var name = document.getElementById('fileInput'); 
+--       alert('Selected file: ' + name.files.item(0).name);
+--       alert('Selected file: ' + name.files.item(0).size);
+--       alert('Selected file: ' + name.files.item(0).type);
+--     };

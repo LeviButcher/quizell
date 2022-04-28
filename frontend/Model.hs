@@ -10,22 +10,28 @@ import qualified Quiz as Q
 import qualified QuizCLI as CLI
 import qualified QuizResults as R
 import Data.Time.Clock
+import Control.Applicative
 
 -- Should change this stuff to Maybe Types
 data Model = Model
-  { quiz :: Q.Quiz,
-    taker :: Maybe String,
-    startTime :: UTCTime,
+  { taker :: Maybe String,
     state :: State,
     pastResults :: [R.QuizResults],
-    allotedTime :: Int,
-    formError :: Maybe String
+    formError :: Maybe String,
+    quizConfig :: Maybe QuizConfig
   }
   deriving (Eq, Show)
 
+data QuizConfig = QuizConfig {
+  quiz :: Q.Quiz,
+  startTime :: UTCTime,
+  allotedTime :: Int,
+  testFile :: String
+} deriving (Eq, Show)
+
 data State
   = Home -- Show Main Screen of App
-  | QuizConfig -- Show Form Dialog for quiz
+  | QuizConfigForm -- Show Form Dialog for quiz
   | RunningQuiz -- Show Taking Quiz Screen
   | Finished -- Show Results Screen
   | PastResults
@@ -37,7 +43,7 @@ data Action
   = Init -- Starting Action of App
   | QuizFormStart -- Change model state to UploadQuiz
   | QuizFormSubmit -- Parse out inputs from UploadQuizForm
-  | SetQuizConfig Int Q.Quiz -- Parsed info from Quiz Form
+  | SetQuizConfig QuizConfig -- Parsed info from Quiz Form
   | Next -- Change quiz to next question
   | Answer Int -- Sets answer for current question
   | GetPastResults -- Load the past results and passes them to the ShowPastResults Action
@@ -51,18 +57,17 @@ data Action
   deriving (Show, Eq)
 
 
-createModel :: Q.Quiz -> UTCTime -> Model
-createModel q t = Model { 
-    quiz=q,
+createDefaultModel :: IO Model
+createDefaultModel = return $ Model { 
     taker=Nothing,
-    startTime=t,
     state=Home, 
     pastResults=[],
-    allotedTime=0,
-    formError = Nothing
+    formError = Nothing,
+    quizConfig=Nothing
   }
 
 getModelResults :: Model -> Maybe R.QuizResults
-getModelResults Model{quiz,taker,startTime} = R.getResults <$> taker <*> Just "?" <*> 
-  Just quiz <*> Just startTime <*> Just startTime <*> Just allotedTime
-  where allotedTime = 0
+getModelResults Model{taker,quizConfig} = do
+  QuizConfig{quiz,startTime,allotedTime,testFile} <- quizConfig
+  name <- taker <|> (Just "No name")
+  return $ R.getResults name testFile quiz startTime startTime allotedTime

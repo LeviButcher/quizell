@@ -23,18 +23,13 @@ import qualified Data.Text as Text
 
 -- Add on result to already stored result string
 storeResults :: Model -> IO ()
-storeResults Model{quiz, startTime, taker} = do
+storeResults m@Model{taker} = do
     store <- localStorage
     storedRes <- readResults
     consoleLog (ms . show $ storedRes)
-    case result of
+    case getModelResults m of
         Nothing -> return ()
         Just r -> setItem store "results" (ms . show $ (r:storedRes))
-    where 
-        result = R.getResults <$> taker <*> Just "?" <*> 
-            Just quiz <*> Just startTime <*> Just startTime <*> Just allotedTime
-        allotedTime = 0
-        
 
 readResults :: IO [R.QuizResults]
 readResults = do

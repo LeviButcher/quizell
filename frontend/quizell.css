@@ -239,6 +239,7 @@ label+input {
     gap: var(--spacing);
     flex-flow: row wrap;
     padding-top: 2em;
+    justify-content: space-between;
 }
 
 .quizView>header>progress {

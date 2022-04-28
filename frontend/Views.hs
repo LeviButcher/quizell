@@ -13,6 +13,7 @@ import qualified Quiz as Q
 import qualified QuizCLI as CLI
 import qualified QuizResults as R
 import Data.Maybe (fromMaybe, isJust)
+import Control.Applicative
 
 ezText :: (ToMisoString s) => s -> View Action
 ezText = text . ms
@@ -42,7 +43,7 @@ viewModel m@Model {state} = case state of
   Home -> viewHome m
   RunningQuiz -> viewTakingQuiz m
   Finished -> viewFinishScreen m
-  QuizConfig -> viewQuizConfigForm m
+  QuizConfigForm -> viewQuizConfigForm m
   PastResults -> viewPastResults m
   UserForm -> viewUserForm m
 
@@ -102,16 +103,20 @@ viewResult R.QuizResults {total, correct, taker, testFile, startTime, endTime, a
 
 
 viewTakingQuiz :: Model -> View Action
-viewTakingQuiz m = section_ [class_ "quizView"] [
-    viewQuizInfo m,
-    viewCurrentQuestion m
-  ]
+viewTakingQuiz Model{quizConfig, taker} = section_ 
+    [class_ "quizView"]
+    (case liftA2 (,) taker quizConfig of
+      Just x -> [
+          viewQuizInfo x,
+          viewCurrentQuestion (snd x)
+        ]
+      Nothing -> [])
 
 
-viewQuizInfo :: Model -> View Action
-viewQuizInfo Model{quiz, taker, allotedTime} = header_ [class_ "card"] [
-    span_ [] [ezText $ "User: " ++ (fromMaybe "No name entered" taker)],
-    span_ [] [ezText $ "File: " ++ "?"],
+viewQuizInfo :: (String, QuizConfig) -> View Action
+viewQuizInfo (taker,QuizConfig{allotedTime,quiz, testFile}) = header_ [class_ "card"] [
+    span_ [] [ezText $ "User: " ++ taker],
+    span_ [] [ezText $ "File: " ++ testFile],
     span_ [] [ezText $ "Alloted Time (In Seconds): " ++ show allotedTime],
     span_ [] [text "Elapsed Time: ?"],
     span_ [] [ezText $ "Question " ++ show currQuestion ++ "/" ++ show totalQuestions],
@@ -123,8 +128,8 @@ viewQuizInfo Model{quiz, taker, allotedTime} = header_ [class_ "card"] [
         msShow = ms . show
 
 
-viewCurrentQuestion :: Model -> View Action
-viewCurrentQuestion Model {quiz} = form_ [name_ "Quiz Question", onSubmit Finish, class_ "card"]
+viewCurrentQuestion :: QuizConfig -> View Action
+viewCurrentQuestion QuizConfig {quiz} = form_ [name_ "Quiz Question", onSubmit Finish, class_ "card"]
   [ header_
       []
       [ h2_ [] [text (ms quest)]
