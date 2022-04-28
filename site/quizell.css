@@ -239,26 +239,30 @@ progress[value]::-moz-progress-bar {
 }
 
 .siteLayout {
-    min-height: calc(100vh);
-    margin: auto;
-    max-width: var(--siteWidth);
-    padding: 0 var(--spacing);
+    min-height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr auto;
+
     gap: var(--spacing);
+    margin: auto;
+    outline: 1px solid red;
+}
+
+.siteLayout>main {
+    width: 100%;
 }
 
 .siteLayout>footer {
-    /* TODO - Make this take up full page width while being aligned with other content */
     background-color: var(--black);
-    padding: var(--spacing);
     color: var(--white);
-    margin-left: calc(-1 * var(--spacing));
-    margin-right: calc(-1 * var(--spacing));
+    padding: var(--spacing) 0;
+}
 
+.siteLayout>footer>div {
     display: flex;
     justify-content: space-between;
 }
+
 
 .pastResultsSection {
     display: grid;
@@ -268,4 +272,10 @@ progress[value]::-moz-progress-bar {
 .pastResultsSection>footer {
     display: flex;
     justify-content: space-between;
+}
+
+.guttered {
+    max-width: var(--siteWidth);
+    margin: 0 auto;
+    padding: 0 var(--spacing);
 }

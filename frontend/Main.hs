@@ -31,9 +31,11 @@ import System.Random (newStdGen)
 -- Extra TODO
 -- [x] Store Result in LocalStorage As Log
 -- [x] Show Results on All results page
+-- [x] Have user config form then have all Results only show that users results
 -- [] Time Limit on quiz
 -- [] Have Default Quizzes Available to take
--- [] Have user config form then have all Results only show that users results
+-- [] Improve showing errors on forms and handling them
+-- [] Improve CSS within forms
 
 -- | Entry point for a miso application
 main :: IO ()

@@ -18,16 +18,20 @@ import Data.Maybe (fromMaybe, isJust)
 layout :: (Model -> View Action) -> Model -> View Action
 layout f m = section_ [class_ "siteLayout"] [
     title, 
-    main_ [] [va],
+    main_ [class_ "guttered"] [va],
     footer
   ]
   where
     va = f m
-    title = header_ [] [h1_ [] [text "Quizell! - the haskell quiz taker"]]
+    title = header_ [] [div_ [class_ "guttered"] [
+          h1_ [] [text "Quizell! - the haskell quiz taker"]
+        ]
+      ]
     footer = footer_ [] [
-        span_ [] [text "Made with Haskell + Miso by Levi Butcher"],
-        a_ [href_ "https://github.com/LeviButcher/quizell"] [text "View on Github"]
-
+        div_ [class_ "guttered"] [
+          span_ [] [text "Made with Haskell + Miso by Levi Butcher"],
+          a_ [href_ "https://github.com/LeviButcher/quizell"] [text "View on Github"]
+        ]
       ]
 
 viewModel :: Model -> View Action
@@ -68,7 +72,7 @@ viewQuizConfig m =
     [ header_ [] [h2_ [] [text "Setup Quiz"]],
       section_
         []
-        [ label_ [for_ "number"] [text "How many questions?"],
+        [ label_ [for_ "number"] [text "How many questions? (0 means all)"],
           input_ [type_ "number", name_ "questions", id_ "questions", min_ "0", value_ "0"],
           label_ [for_ "allotedTime"] [text "Alloted Time (In Seconds)"],
           input_ [type_ "number", name_ "allotedTime", id_ "allotedTime", min_ "0", value_ "0"],
