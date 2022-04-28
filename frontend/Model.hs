@@ -13,19 +13,21 @@ import qualified QuizResults as R
 -- Should change this stuff to Maybe Types
 data Model = Model
   { quiz :: Q.Quiz,
-    taker :: String,
+    taker :: Maybe String,
     startTime :: UTCTime,
     state :: State,
-    pastResults :: [R.QuizResults]
+    pastResults :: [R.QuizResults],
+    allotedTime :: Int
   }
   deriving (Eq, Show)
 
 data State
   = Home -- Show Main Screen of App
-  | UploadQuestions -- Show Form Dialog for quiz
+  | QuizConfig -- Show Form Dialog for quiz
   | RunningQuiz -- Show Taking Quiz Screen
   | Finished -- Show Results Screen
   | PastResults
+  | UserForm
   deriving (Eq, Show)
 
 -- | Sum type for application events
@@ -33,11 +35,14 @@ data Action
   = Init -- Starting Action of App
   | QuizFormStart -- Change model state to UploadQuiz
   | QuizFormSubmit -- Parse out inputs from UploadQuizForm
-  | QuizForm String Q.QuestionList -- Parsed info from Quiz Form
+  | SetQuizConfig Int Q.QuestionList -- Parsed info from Quiz Form
   | Next -- Change quiz to next question
   | Answer Int -- Sets answer for current question
   | GetPastResults -- Load the past results and passes them to the ShowPastResults Action
   | ShowPastResults [R.QuizResults] -- Sets State to Past Results and sets past results
   | Finish -- Change Model State to Finished
-  | Reset -- Change Model State to Home
+  | ShowHome -- Change Model State to Home
+  | ShowUserForm -- Change Model State to UserForm
+  | SubmitUserForm -- User form was submitted
+  | SetUserName String -- update Model with User name
   deriving (Show, Eq)

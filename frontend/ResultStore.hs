@@ -11,8 +11,7 @@ import qualified QuizResults as R
 import Model
 import GHCJS.Foreign.Callback
 import GHCJS.Types
-import Miso.String
-import Data.JSString
+import Miso.String hiding (filter)
 import Miso hiding (asyncCallback)
 import Language.Javascript.JSaddle.Value (valToText, valToStr, deRefVal, JSValue(..))
 import qualified Data.Text as Text
@@ -28,9 +27,12 @@ storeResults Model{quiz, startTime, taker} = do
     store <- localStorage
     storedRes <- readResults
     consoleLog (ms . show $ storedRes)
-    setItem store "results" (ms . show $ (result:storedRes))
+    case result of
+        Nothing -> return ()
+        Just r -> setItem store "results" (ms . show $ (r:storedRes))
     where 
-        result = R.getResults taker "?" quiz startTime startTime allotedTime
+        result = R.getResults <$> taker <*> Just "?" <*> 
+            Just quiz <*> Just startTime <*> Just startTime <*> Just allotedTime
         allotedTime = 0
         
 
@@ -42,4 +44,11 @@ readResults = do
     case jsValue of
         (ValString x) -> return . read . Text.unpack $ x
         _ -> return []
-    
+
+getPastResults :: Model -> IO[R.QuizResults]
+getPastResults Model{taker} = do
+    case taker of
+        Nothing -> return []
+        Just x -> do
+            allResults <- readResults
+            return $ filter (\y -> R.taker y == x) allResults

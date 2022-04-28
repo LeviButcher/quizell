@@ -29,48 +29,20 @@ import qualified ResultStore as RS
 
 -- Extra TODO
 -- [x] Store Result in LocalStorage As Log
--- [] Show Results on All results page
+-- [x] Show Results on All results page
 -- [] Time Limit on quiz
 -- [] Have Default Quizzes Available to take
-
--- NOTE: Doing the Time Limit would make it easier to do the Results
-
-
--- DEPLOYMENT
--- 1. Figure out how to copy css to deployment index.html
--- 2. Figure out how to either make synmlink into a pure copy
--- OR Run pipeline that just deploys that folder
-
-fakeQuestionList :: Q.QuestionList
-fakeQuestionList = [ 
-  Q.Question {
-      Q.question = "What is my favorite color",
-      Q.answers = ["Blue", "Red", "Green", "WHAT I DONT KNOW THAT"],
-      Q.correct = 1 
-    },
-  Q.Question {
-      Q.question = "How are you",
-      Q.answers = ["Good", "Bad", "IDK", "WHAT I DONT KNOW THAT"],
-      Q.correct = 1 
-    },
-  Q.Question
-    { Q.question = "Best Zelda Game",
-      Q.answers = ["Zelda 2", "LTTP", "Every One"],
-      Q.correct = 2
-    }
-  ]
-
+-- [] Have user config form then have all Results only show that users results
 
 -- | Entry point for a miso application
 main :: IO ()
 main = do
-  let quiz = Q.createQuiz fakeQuestionList
-      taker = "levi"
+  let quiz = Q.createQuiz []
   time <- getCurrentTime
   startApp 
     App {
       initialAction =  Init,
-      model = createModel quiz time taker,
+      model = createModel quiz time,
       update = updateModel,
       view   = layout viewModel,
       events = defaultEvents,
@@ -79,21 +51,46 @@ main = do
       logLevel = DebugPrerender
     }
 
-createModel :: Q.Quiz -> UTCTime -> String -> Model
-createModel q t s = Model q s t Home []
+createModel :: Q.Quiz -> UTCTime -> Model
+createModel q t = Model { 
+    quiz=q,
+    taker=Nothing,
+    startTime=t,
+    state=Home, 
+    pastResults=[],
+    allotedTime=0
+  }
 
 updateModel :: Action -> Model -> Effect Action Model
 updateModel Init m = noEff m
+updateModel ShowHome m = noEff $ m{state=Home}
+
+-- Quiz Actions
 updateModel Next m@Model{quiz} = noEff $ m {quiz=if Q.hasNext quiz then Q.next quiz else quiz} 
 updateModel Finish m = storeResultsInStorage m *> noEff (m {state=Finished})
 updateModel (Answer a) m = answerCurr a m
-updateModel Reset m = noEff $ m{state=Home}
-updateModel QuizFormStart m = noEff $ m {state = UploadQuestions}
+
+-- Quiz Config Form
+updateModel QuizFormStart m = noEff $ m {state = QuizConfig}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
-updateModel (QuizForm name qList) m = 
-    noEff $ m {state = RunningQuiz, taker = name, quiz = Q.createQuiz qList}
-updateModel GetPastResults m = m <# (ShowPastResults <$> RS.readResults)
+updateModel (SetQuizConfig aTime qList) m = 
+    noEff $ m {quiz = Q.createQuiz qList, allotedTime=aTime, state = RunningQuiz}
+
+-- Past Results
+updateModel GetPastResults m = m <# (ShowPastResults <$> RS.getPastResults m)
 updateModel (ShowPastResults results) m = noEff $ m {state = PastResults, pastResults=results}
+
+-- User Config Form
+updateModel ShowUserForm m = noEff $ m {state = UserForm}
+updateModel SubmitUserForm m = handleUserFormSubmit m
+updateModel (SetUserName name) m = m {taker=Just name} <# pure ShowHome
+
+
+handleUserFormSubmit :: Model -> Effect Action Model
+handleUserFormSubmit m = m <# do
+  name <- getInputValue "name"
+  return $ SetUserName (fromMisoString name)
+
 
 storeResultsInStorage :: Model -> Effect Action Model
 storeResultsInStorage m = m <# do
@@ -108,12 +105,12 @@ answerCurr i m = noEff $ m {quiz = newQuiz}
 
 handleQuizFormSubmit :: Model -> Effect Action Model
 handleQuizFormSubmit m = m <# do
-  name <- getInputValue "name"
+  time <- fromMisoString <$> getInputValue "allotedTime"
   file <- readFileFromForm
   let eitherQuestions = parseQuestions (fromMisoString file)
   case eitherQuestions of 
     Left err -> consoleLog (ms . show $ err) >> return QuizFormStart
-    Right questions -> return $ QuizForm (fromMisoString name) questions
+    Right questions -> return $ SetQuizConfig time questions
 
 readFileFromForm :: IO MisoString
 readFileFromForm = do

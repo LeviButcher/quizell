@@ -13,6 +13,7 @@ import QuestionParser
 import qualified Quiz as Q
 import qualified QuizCLI as CLI
 import qualified QuizResults as R
+import Data.Maybe (fromMaybe)
 
 -- Vomiting that theres no way to put the style sheet in a head tag
 layout :: (Model -> View Action) -> Model -> View Action
@@ -35,8 +36,9 @@ viewModel m@Model {state} = case state of
   Home -> viewHome m
   RunningQuiz -> viewTakingQuiz m
   Finished -> viewFinishScreen m
-  UploadQuestions -> viewUploadQuestion m
+  QuizConfig -> viewQuizConfig m
   PastResults -> viewPastResults m
+  UserForm -> viewUserForm m
 
 viewHome :: Model -> View Action
 viewHome m =
@@ -45,20 +47,21 @@ viewHome m =
     [ h2_ [] [text "Welcome - Please Choose a Option"],
       menu_ [class_ "home_menu"] [
         button_ [onClick QuizFormStart] [text "Take a Quiz!"],
-        button_ [onClick GetPastResults] [text "View Past Results"]
+        button_ [onClick GetPastResults] [text "View Past Results"],
+        button_ [onClick ShowUserForm] [text "Change User Config"]
         ]
     ]
 
 -- Maybe Wrap in Dialog
-viewUploadQuestion :: Model -> View Action
-viewUploadQuestion m =
+viewQuizConfig :: Model -> View Action
+viewQuizConfig m =
   form_
     [id_ "quizForm", onSubmit QuizFormSubmit, class_ "card"]
     [ header_ [] [h2_ [] [text "Setup Quiz"]],
-      div_
+      section_
         []
-        [ label_ [for_ "name"] [text "Name"],
-          input_ [type_ "text", name_ "name", id_ "name"],
+        [ label_ [for_ "allotedTime"] [text "Alloted Time"],
+          input_ [type_ "number", name_ "allotedTime", id_ "allotedTime", min_ "0", value_ "0"],
           label_ [for_ "questions"] [text "Upload Question List"],
           input_ [type_ "File", name_ "questions", id_ "questions"]
         ],
@@ -68,16 +71,23 @@ viewUploadQuestion m =
     ]
 
 viewFinishScreen :: Model -> View Action
-viewFinishScreen Model {quiz, taker, startTime} =
+viewFinishScreen m =
   section_
     [class_ "card"]
-    [ result res,
-      resetButton
+    [ res,
+      goHomeButton
     ]
   where
-    res = R.getResults taker "?" quiz startTime startTime allotedTime
-    resetButton = button_ [onClick Reset] [text "Go Back To Home"]
-    allotedTime = 0
+    goHomeButton = button_ [onClick ShowHome] [text "Go Back To Home"]
+    res = case getModelResults m of 
+        Nothing -> div_ [] [text "Something Failed"]
+        Just x -> result x
+    
+
+getModelResults :: Model -> Maybe R.QuizResults
+getModelResults Model{quiz,taker,startTime} = R.getResults <$> taker <*> Just "?" <*> 
+  Just quiz <*> Just startTime <*> Just startTime <*> Just allotedTime
+  where allotedTime = 0
 
 result :: R.QuizResults -> View Action
 result R.QuizResults {total, correct, taker, testFile, startTime, endTime, allotedTime} =
@@ -108,9 +118,10 @@ viewTakingQuiz m = section_ [class_ "quizView"] [
 
 
 quizInfo :: Model -> View Action
-quizInfo Model{quiz, taker} = header_ [class_ "card"] [
-    span_ [] [ezText $ "User: " ++ taker],
+quizInfo Model{quiz, taker, allotedTime} = header_ [class_ "card"] [
+    span_ [] [ezText $ "User: " ++ (fromMaybe "No name entered" taker)],
     span_ [] [ezText $ "File: " ++ "?"],
+    span_ [] [ezText $ "Alloted Time (In Seconds): " ++ show allotedTime],
     span_ [] [text "Elapsed Time: ?"],
     span_ [] [ezText $ "Question " ++ show totalAnswered ++ "/" ++ show totalQuestions],
     progress_ [max_ . ms . show $ totalQuestions, value_ . ms . show $ totalAnswered] []
@@ -159,9 +170,21 @@ ezText = text . ms
 
 
 viewPastResults :: Model -> View Action
-viewPastResults m@Model{pastResults} = section_ [class_ "pastResultsSection"] [
+viewPastResults Model{pastResults} = section_ [class_ "pastResultsSection"] [
     header_ [] [h2_ [] [text "Past Results"]],
     section_ [class_ "pastResults"] results,
-    footer_ [] [ button_  [onClick Reset, class_ "button_dark"] [text "To Home"]]
+    footer_ [] [ button_  [onClick ShowHome, class_ "button_dark"] [text "To Home"]]
   ]
   where results = result <$> pastResults
+
+viewUserForm :: Model -> View Action
+viewUserForm m = form_ [onSubmit SubmitUserForm, class_ "card"] [
+    header_ [] [h3_ [] [text "User Config Form"]],
+    section_ [] [
+      label_ [for_ "name"] [text "User Name"],
+      input_ [type_ "text", id_ "name"]
+    ],
+    footer_ [] [
+      button_ [type_ "Submit", class_ "button_dark"] [text "Submit"]
+    ]
+  ]

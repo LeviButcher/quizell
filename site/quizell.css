@@ -42,13 +42,19 @@ body {
 }
 
 body {
-    position: relative;
-    /* Ensures footer is position correctly  */
     background: repeating-linear-gradient(-45deg,
             var(--white),
             var(--white) 10%,
             var(--purp_lighter) 10%,
             var(--purp_lighter) 20%);
+}
+
+a:link {
+    color: var(--purp_light);
+}
+
+a:visited {
+    color: var(--yellow);
 }
 
 h1,
