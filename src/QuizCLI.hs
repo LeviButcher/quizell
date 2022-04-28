@@ -16,6 +16,7 @@ import qualified QuizResults as QR
 import qualified QuizTaker as QT
 import System.Random (newStdGen)
 import Utils (Log (readLog), allTrue, errorText, getNumberOrDefault, goodNewsText, joinDelim, numberStrings, resetScreen)
+import Control.Monad.Except
 
 printQuestion :: Question -> String
 printQuestion (Question q a _) = unlines [q, "", numbAnswer]
@@ -57,27 +58,16 @@ takeQuiz = do
       QT.next
       takeQuiz
 
-getQuizFile :: String -> IO (Either String String)
-getQuizFile quizPath = do
+-- Has User enter filePath and reads it
+getQuestionFile :: String -> IO (Either String String)
+getQuestionFile quizPath = do
   readResult <- try (readFile quizPath) :: IO (Either IOError String)
   return $ left (const $ "File entered does not exist: " ++ quizPath) readResult
 
-getParsedQuiz :: String -> Either String Q.QuestionList
-getParsedQuiz = first (const "Failed to parse file correctly\nPlease try again\n") . QP.parseQuestions
-
-randomizeQuiz :: Q.QuestionList -> IO Q.QuestionList
-randomizeQuiz qList = do
-  rng <- newStdGen
-  return $ Q.shuffleQuestions rng qList
-
-trimQuiz :: Int -> Q.QuestionList -> Either String Q.QuestionList
-trimQuiz n q
-  | n < 0 = Left $ show n ++ " is a invalid number of questions"
-  | n == 0 = Right q
-  | n <= qLength = Right $ take n q
-  | otherwise = Left $ "Quiz only has " ++ show qLength ++ " Questions"
-  where
-    qLength = length q
+-- Takes in the FileString
+getParsedQuestions :: String -> Either String Q.QuestionList
+getParsedQuestions = first (const "Failed to parse file correctly\nPlease try again\n") . 
+  QP.parseQuestions
 
 printUserLogs :: (String -> IO String) -> IO String -> IO ()
 printUserLogs getStorage getName = do
@@ -86,11 +76,10 @@ printUserLogs getStorage getName = do
   let userLogs = filter ((user ==) . QR.taker) logs
   putStrLn $ QR.showResults userLogs
 
-getQuestionList :: FilePath -> Int -> IO (Either String Q.QuestionList)
-getQuestionList file n = do
-  txt <- getQuizFile file
-  randomQ <- sequence $ txt >>= getParsedQuiz <&> randomizeQuiz
-  return $ randomQ >>= trimQuiz n
+getQuestionList :: FilePath -> IO (Either String Q.QuestionList)
+getQuestionList file = runExceptT $ do
+  txt <- ExceptT $ getQuestionFile file
+  liftEither $ getParsedQuestions txt
 
 timer :: Int -> QT.QuizTaker IO ()
 timer n = do

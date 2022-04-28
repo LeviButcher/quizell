@@ -18,6 +18,7 @@ import System.Random (newStdGen)
 import Text.Printf (printf)
 import Text.Read (readMaybe)
 import Utils (Log (readLog, toLog), getTimeString)
+import Control.Monad.Except
 
 data ProgramArgs = ProgramArgs
   { quizPath :: String,
@@ -28,7 +29,7 @@ data ProgramArgs = ProgramArgs
   }
   deriving (Show)
 
-type QuizellApp = ProgramArgs -> Q.QuestionList -> IO Q.Quiz
+type QuizellApp = ProgramArgs -> Q.QuestionList -> IO (Either String Q.Quiz)
 
 data QuizException = OutOfTime deriving (Show)
 
@@ -44,36 +45,35 @@ secondsToMicro x = x * 1000000
 
 runQuizell :: ProgramArgs -> (String -> IO String) -> IO String -> QuizellApp -> IO ()
 runQuizell args@(ProgramArgs q l t r time) getStorage getName quizell = do
-  actualProgram
-  where
-    actualProgram = do
-      if r
-        then printUserLogs getStorage getName
-        else
-          ( do
-              qList <- getQuestionList q l
-              case qList of
-                Left err -> putStrLn err
-                Right quiz -> do
-                  quizStart <- getCurrentTime
-                  finalState <- quizell args quiz
-                  res <-
-                    getResults <$> getName <*> pure q <*> pure finalState <*> pure quizStart
-                      <*> getCurrentTime
-                      <*> pure time
-                  putStrLn "--QUIZ RESULTS--"
-                  putStrLn $ QR.showResult res
-                  toLog getStorage res
-                  putStrLn "Press Enter to Cont."
-                  getLine
-                  return ()
-          )
+    if r
+      then printUserLogs getStorage getName
+      else do
+        mainRes <- mainPath
+        case mainRes of
+          Left err -> print err
+          Right _ -> return ()
+  where 
+    mainPath = runExceptT $ do
+      qList <- ExceptT $ getQuestionList q
+      quizStart <- liftIO $ getCurrentTime
+      finalState <- ExceptT $ quizell args qList
+      res <-
+        liftIO $ getResults <$> getName <*> pure q <*> pure finalState <*> pure quizStart
+          <*> getCurrentTime
+          <*> pure time
+      liftIO $ putStrLn "--QUIZ RESULTS--"
+      liftIO $ putStrLn (QR.showResult res)
+      liftIO $ toLog getStorage res
+      liftIO $ putStrLn "Press Enter to Cont."
+      liftIO $ getLine
+      return ()
 
-normalApp :: ProgramArgs -> Q.QuestionList -> IO Q.Quiz
-normalApp args qList = do
-  let quiz = Q.createQuiz qList
+normalApp :: ProgramArgs -> Q.QuestionList -> IO (Either String Q.Quiz)
+normalApp args qList = runExceptT $ do
+  rng <- liftIO newStdGen
+  quiz <- liftEither $ Q.createShuffledQuizToLength rng (quizLength args) qList
   let t = time args
 
   if t > 0
-    then execMState (timedTakeQuiz (secondsToMicro t)) quiz
-    else execMState takeQuiz quiz
+    then liftIO $ execMState (timedTakeQuiz (secondsToMicro t)) quiz
+    else liftIO $ execMState takeQuiz quiz

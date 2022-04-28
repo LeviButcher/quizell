@@ -9,8 +9,9 @@ import Control.Monad.Cont (MonadIO)
 import Data.List.Zipper (Zipper (Zip), cursor, endp, foldlz, fromList, left, replace, right, start, toList)
 import qualified Data.List.Zipper as Z
 import Data.Maybe (fromMaybe, isJust)
-import System.Random (RandomGen (split))
+import System.Random (RandomGen (split), newStdGen)
 import System.Random.Shuffle (shuffle')
+
 
 data Question = Question
   { question :: String,
@@ -88,9 +89,17 @@ currPosition (Zip [] []) = 0
 currPosition (Zip l _) = length l + 1
 
 
-createShuffledQuizToLength :: (RandomGen gen) => gen -> Int -> [Question] -> Quiz
-createShuffledQuizToLength gen 0 = createQuiz . shuffleQuestions gen
-createShuffledQuizToLength gen n = createQuiz . take n . shuffleQuestions gen
+createShuffledQuizToLength :: (RandomGen gen) => gen -> Int -> [Question] -> Either String Quiz
+createShuffledQuizToLength gen n = fmap createQuiz . trimQuestions n . shuffleQuestions gen
+
+trimQuestions :: Int -> QuestionList -> Either String QuestionList
+trimQuestions n q
+  | n < 0 = Left $ show n ++ " is a invalid number of questions"
+  | n == 0 = Right q
+  | n <= qLength = Right $ take n q
+  | otherwise = Left $ "Quiz only has " ++ show qLength ++ " Questions"
+  where
+    qLength = length q
 
 createQuiz :: [Question] -> Quiz
 createQuiz qs = fromList $ zip qs (repeat Nothing)
@@ -98,6 +107,4 @@ createQuiz qs = fromList $ zip qs (repeat Nothing)
 shuffleQuestions :: (RandomGen gen) => gen -> QuestionList -> QuestionList
 shuffleQuestions g [] = []
 shuffleQuestions g [x] = [x]
-shuffleQuestions g q =
-  let shuffled = shuffle' q (length q) g
-   in if shuffled /= q then shuffled else shuffleQuestions (fst . split $ g) q
+shuffleQuestions g q = shuffle' q (length q) g
