@@ -66,13 +66,13 @@ body {
             var(--purp_lighter) 20%);
 
     background-size: 200% 200%;
-    animation: barberpole 50s linear infinite;
+    animation: barberpole 30s linear infinite;
 }
 
 /* From: https: //css-tricks.com/books/fundamental-css-tactics/striped-barberpole-animation/ */
 @keyframes barberpole {
     100% {
-        background-position: 100% 100%;
+        background-position: 80% 80%;
     }
 }
 
@@ -198,7 +198,6 @@ label+input {
 }
 
 .card {
-    border-radius: 5px;
     border: 3px solid var(--gray);
     box-shadow: 5px 5px 0px 0px var(--gray);
     padding: var(--spacing);
@@ -247,7 +246,6 @@ label+input {
     top: 0;
     left: 0;
     width: 100%;
-    border-radius: 5px 5px 0 0;
     border: 0;
 }
 
@@ -319,4 +317,8 @@ progress[value]::-moz-progress-bar {
 
 .errorText {
     color: var(--errorColor);
+}
+
+.timer {
+    outline: 1px solid red;
 }

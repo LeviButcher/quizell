@@ -23,6 +23,7 @@ import qualified ResultStore as RS
 import System.Random (newStdGen)
 import Control.Applicative
 import Control.Monad.Except
+import Control.Concurrent
 
 -- MVC TODO
 -- [x] Calculate and Show Results
@@ -69,14 +70,22 @@ updateModel Next m@Model{quizConfig} = noEff $
       config@QuizConfig{quiz} <- quizConfig
       Just $ config{quiz=if Q.hasNext quiz then Q.next quiz else quiz} 
 
-updateModel Finish m = storeResultsInStorage m *> noEff (m {state=Finished})
 updateModel (Answer a) m = answerCurr a m
+updateModel FinishedQuiz m = m <# (SetEndTime <$> getCurrentTime)
+updateModel (SetEndTime end) m@Model{quizConfig} = 
+  m{quizConfig=newConfig <|> quizConfig} <# (return ShowQuizResult)
+  where 
+    newConfig = do
+      conf <- quizConfig
+      return $ conf{endTime=Just end}
+
+updateModel ShowQuizResult m = (m <# (Init <$ releaseCallbacks)) *> (storeResultsInStorage m) *> (noEff $ m {state=Finished})
 
 -- Quiz Config Form
 updateModel QuizFormStart m = noEff $ m {state = QuizConfigForm}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
-updateModel (SetQuizConfig config) m = 
-    noEff $ m {quizConfig=Just config, state = RunningQuiz}
+updateModel (SetQuizConfig config) m = noEff (m {quizConfig=Just config, state = RunningQuiz} )
+updateModel (StartTimer) m = setupVisualTimer m *> (effectSub m (setupForcedEndTimer m))
 
 -- Past Results
 updateModel GetPastResults m = m <# (ShowPastResults <$> RS.getPastResults m)
@@ -90,6 +99,40 @@ updateModel (SetUserName name) m = m {taker=Just name} <# pure ShowHome
 -- Sets Form Information
 updateModel (SetFormError e) m = noEff $ m {formError=Just e}
 
+-- Extra stuff
+-- updateModel WipeIntervals m = noEff m
+-- updateModel (AddInterval inter) m@Model{intervals} = noEff $ m {intervals=inter:intervals}
+
+-- Show in the Quiz Form the current Elapsed Time
+-- AND set up a running thread that'll end the quiz after elapsed time
+setupVisualTimer :: Model -> Effect Action Model
+setupVisualTimer m@Model{quizConfig} = m <# do
+  case quizConfig of
+    Nothing -> return Init
+    Just conf -> do
+      asyncCallback . forever $ updateTimer conf
+      -- interval <- setInterval callback 1000 -- How can I clear this interval?
+
+      return Init
+  where 
+    updateTimer QuizConfig{startTime} = do
+      currTime <- getCurrentTime
+      let time = diffUTCTime currTime startTime
+      setElementInnerHTML "timer" (ms . show $ time)
+
+
+
+-- This timer work but how can I stop it if you finish early???
+setupForcedEndTimer :: Model -> Sub Action
+setupForcedEndTimer Model{quizConfig} = \sink -> do
+  case quizConfig of
+    Nothing -> sink Init
+    Just QuizConfig{allotedTime} -> do
+      if allotedTime > 0 then do
+          threadDelay (sToMicro allotedTime) 
+          sink ShowQuizResult 
+        else sink Init
+  where sToMicro s = s * 1000000 
 
 handleUserFormSubmit :: Model -> Effect Action Model
 handleUserFormSubmit m = m <# do
@@ -124,16 +167,16 @@ getQuizFormData :: ExceptT String IO Action
 getQuizFormData = do
   aTime <- ExceptT (fromMisoStringEither <$> getInputValue "allotedTime")
   questionCount <- ExceptT (fromMisoStringEither <$> getInputValue "questions")
-  (fileName,fileContent) <- liftIO readFileFromForm
+  (fileName, fileContent) <- liftIO readFileFromForm
   fileContentString <- liftEither $ fromMisoStringEither fileContent
-  fileName <- liftEither $ fromMisoStringEither fileName
+  fileNameString <- liftEither $ fromMisoStringEither fileName
   questions <- withExceptT 
     (const "Failed to parse file - Make sure a correctly formatted quiz file is selected") 
     (liftEither $ parseQuestions fileContentString)
   rng <- liftIO newStdGen
   quiz <- liftEither $ Q.createShuffledQuizToLength rng questionCount questions
   sTime <- liftIO getCurrentTime
-  return $ SetQuizConfig (QuizConfig quiz sTime aTime fileName)
+  return $ SetQuizConfig (QuizConfig quiz sTime aTime fileNameString Nothing)
 
 
 -- Returns back both the fileName and fileContent
@@ -173,9 +216,8 @@ foreign import javascript unsafe "$r = document.getElementById($1).value;"
 foreign import javascript unsafe "$r = $1.files.item(0).name;"
   getFileName :: JSVal -> IO MisoString
 
---  function showname () {
---       var name = document.getElementById('fileInput'); 
---       alert('Selected file: ' + name.files.item(0).name);
---       alert('Selected file: ' + name.files.item(0).size);
---       alert('Selected file: ' + name.files.item(0).type);
---     };
+foreign import javascript unsafe "document.getElementById($1).innerHTML = $2"
+  setElementInnerHTML :: MisoString -> MisoString -> IO ()
+
+foreign import javascript unsafe "$r = setInterval($1, $2)"
+  setInterval :: Callback (IO ()) -> Int -> IO JSVal

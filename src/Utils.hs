@@ -1,9 +1,10 @@
 module Utils where
 
 import Data.Maybe (fromMaybe)
-import Data.Time (DiffTime, NominalDiffTime, defaultTimeLocale, formatTime)
 import System.Console.ANSI (Color (Blue, Cyan, Green, Magenta, Red), ColorIntensity (Dull, Vivid), ConsoleLayer (Foreground), SGR (Reset, SetColor), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
+import Data.Time.Format (defaultTimeLocale, formatTime, FormatTime)
+-- import Data.Time.Clock (DiffTime, NominalDiffTime)
 
 allTrue :: [Bool] -> Bool
 allTrue = all (== True)
@@ -19,9 +20,9 @@ boundWrapAround f l u i
   where
     o = f i
 
-getTimeString :: NominalDiffTime -> String
--- getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
-getTimeString = const ""
+getTimeString :: FormatTime t => t -> String
+getTimeString = formatTime defaultTimeLocale "%hh:%mm:%ss"
+-- getTimeString = const ""
 
 -- getTimeString = const ""
 

@@ -19,14 +19,14 @@ data Model = Model
     pastResults :: [R.QuizResults],
     formError :: Maybe String,
     quizConfig :: Maybe QuizConfig
-  }
-  deriving (Eq, Show)
+  } deriving (Eq, Show)
 
 data QuizConfig = QuizConfig {
   quiz :: Q.Quiz,
   startTime :: UTCTime,
   allotedTime :: Int,
-  testFile :: String
+  testFile :: String,
+  endTime :: Maybe UTCTime
 } deriving (Eq, Show)
 
 data State
@@ -48,13 +48,16 @@ data Action
   | Answer Int -- Sets answer for current question
   | GetPastResults -- Load the past results and passes them to the ShowPastResults Action
   | ShowPastResults [R.QuizResults] -- Sets State to Past Results and sets past results
-  | Finish -- Change Model State to Finished
+  | FinishedQuiz -- Kick off effect to to get finishedTime
+  | SetEndTime UTCTime -- Set the quizConfigs endtime
+  | ShowQuizResult -- Update the model to Finished
   | ShowHome -- Change Model State to Home
   | ShowUserForm -- Change Model State to UserForm
   | SubmitUserForm -- User form was submitted
   | SetUserName String -- update Model with User name
   | SetFormError String -- updates Model with form Error (Doesn't change state)
-  deriving (Show, Eq)
+  | StartTimer -- Start the timer to close the quiz after alloted time
+  deriving (Eq, Show)
 
 
 createDefaultModel :: IO Model
@@ -68,6 +71,7 @@ createDefaultModel = return $ Model {
 
 getModelResults :: Model -> Maybe R.QuizResults
 getModelResults Model{taker,quizConfig} = do
-  QuizConfig{quiz,startTime,allotedTime,testFile} <- quizConfig
+  QuizConfig{quiz,startTime,allotedTime,testFile, endTime} <- quizConfig
   name <- taker <|> (Just "No name")
-  return $ R.getResults name testFile quiz startTime startTime allotedTime
+  end <- endTime
+  return $ R.getResults name testFile quiz startTime end allotedTime

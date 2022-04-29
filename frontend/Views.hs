@@ -14,6 +14,7 @@ import qualified QuizCLI as CLI
 import qualified QuizResults as R
 import Data.Maybe (fromMaybe, isJust)
 import Control.Applicative
+import Utils as Utils
 
 ezText :: (ToMisoString s) => s -> View Action
 ezText = text . ms
@@ -95,8 +96,8 @@ viewResult R.QuizResults {total, correct, taker, testFile, startTime, endTime, a
               li_ [] [ezText $ "Alloted Time: " ++ show allotedTime],
               li_ [] [ezText $ "Total Correct: " ++ show correct],
               li_ [] [ezText $ "Total Questions: " ++ show total],
-              li_ [] [ezText $ "Start Time:" ++ show startTime],
-              li_ [] [ezText $ "End Time:" ++ show endTime]
+              li_ [] [ezText $ "Start Time:" ++ Utils.getTimeString startTime],
+              li_ [] [ezText $ "End Time:" ++ Utils.getTimeString endTime]
             ]
         ]
     ]
@@ -104,7 +105,7 @@ viewResult R.QuizResults {total, correct, taker, testFile, startTime, endTime, a
 
 viewTakingQuiz :: Model -> View Action
 viewTakingQuiz Model{quizConfig, taker} = section_ 
-    [class_ "quizView"]
+    [class_ "quizView", onCreated StartTimer]
     (case liftA2 (,) taker quizConfig of
       Just x -> [
           viewQuizInfo x,
@@ -112,13 +113,13 @@ viewTakingQuiz Model{quizConfig, taker} = section_
         ]
       Nothing -> [])
 
-
+-- Should restructure this
 viewQuizInfo :: (String, QuizConfig) -> View Action
 viewQuizInfo (taker,QuizConfig{allotedTime,quiz, testFile}) = header_ [class_ "card"] [
     span_ [] [ezText $ "User: " ++ taker],
     span_ [] [ezText $ "File: " ++ testFile],
     span_ [] [ezText $ "Alloted Time (In Seconds): " ++ show allotedTime],
-    span_ [] [text "Elapsed Time: ?"],
+    div_ [] [span_ [] [text "Elapsed Time: "], span_ [id_ "timer"] [text ""]],
     span_ [] [ezText $ "Question " ++ show currQuestion ++ "/" ++ show totalQuestions],
     progress_ [max_ . msShow $ totalQuestions, value_ . msShow $ totalAnswered, min_ "0"] []
   ]
@@ -129,7 +130,7 @@ viewQuizInfo (taker,QuizConfig{allotedTime,quiz, testFile}) = header_ [class_ "c
 
 
 viewCurrentQuestion :: QuizConfig -> View Action
-viewCurrentQuestion QuizConfig {quiz} = form_ [name_ "Quiz Question", onSubmit Finish, class_ "card"]
+viewCurrentQuestion QuizConfig {quiz} = form_ [name_ "Quiz Question", onSubmit FinishedQuiz, class_ "card"]
   [ header_
       []
       [ h2_ [] [text (ms quest)]
