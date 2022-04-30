@@ -24,6 +24,7 @@ import System.Random (newStdGen)
 import Control.Applicative
 import Control.Monad.Except
 import Control.Concurrent
+import Data.Time.Format
 
 -- MVC TODO
 -- [x] Calculate and Show Results
@@ -38,8 +39,9 @@ import Control.Concurrent
 -- [x] Improve CSS within forms
 -- [x] Improve showing errors on forms and handling them
 -- [x] Improve Backend QuestionList to Quiz creation
--- [] Time Limit on quiz
+-- [x] Time Limit on quiz
 -- [] Show Correct Answers after quiz is finished
+-- [] Make times end themselves by query dom for quiz elements
 -- [] Have Default Quizzes Available to take
 
 -- | Entry point for a miso application
@@ -79,13 +81,13 @@ updateModel (SetEndTime end) m@Model{quizConfig} =
       conf <- quizConfig
       return $ conf{endTime=Just end}
 
-updateModel ShowQuizResult m = (m <# (Init <$ releaseCallbacks)) *> (storeResultsInStorage m) *> (noEff $ m {state=Finished})
+updateModel ShowQuizResult m = (storeResultsInStorage m) *> (noEff $ m {state=Finished})
 
 -- Quiz Config Form
 updateModel QuizFormStart m = noEff $ m {state = QuizConfigForm}
 updateModel QuizFormSubmit m = handleQuizFormSubmit m
 updateModel (SetQuizConfig config) m = noEff (m {quizConfig=Just config, state = RunningQuiz} )
-updateModel (StartTimer) m = setupVisualTimer m *> (effectSub m (setupForcedEndTimer m))
+updateModel (StartTimer) m = effectSub m startVisualTimer *> (effectSub m (startForcedEndTimer m))
 
 -- Past Results
 updateModel GetPastResults m = m <# (ShowPastResults <$> RS.getPastResults m)
@@ -99,44 +101,35 @@ updateModel (SetUserName name) m = m {taker=Just name} <# pure ShowHome
 -- Sets Form Information
 updateModel (SetFormError e) m = noEff $ m {formError=Just e}
 
--- Extra stuff
--- updateModel WipeIntervals m = noEff m
--- updateModel (AddInterval inter) m@Model{intervals} = noEff $ m {intervals=inter:intervals}
 
--- Show in the Quiz Form the current Elapsed Time
--- AND set up a running thread that'll end the quiz after elapsed time
-setupVisualTimer :: Model -> Effect Action Model
-setupVisualTimer m@Model{quizConfig} = m <# do
-  case quizConfig of
-    Nothing -> return Init
-    Just conf -> do
-      asyncCallback . forever $ updateTimer conf
-      -- interval <- setInterval callback 1000 -- How can I clear this interval?
-
-      return Init
+startVisualTimer :: Sub Action
+startVisualTimer = \sink -> do
+  currTime <- getCurrentTime
+  forever $ updateTimer currTime >> threadDelay (sToMicro 1)
   where 
-    updateTimer QuizConfig{startTime} = do
+    updateTimer startTime = do
       currTime <- getCurrentTime
-      let time = diffUTCTime currTime startTime
-      setElementInnerHTML "timer" (ms . show $ time)
+      let time = currTime `diffUTCTime` startTime
+          -- timeString = formatTime defaultTimeLocale "%h:%m:%s" time
+          -- Can't due formatTime because theirs no instance of NominalDiffTime???
+      setElementInnerHTML "timer" $ (ms . show) time
 
+-- Convert seconds to microseconds
+sToMicro :: Int -> Int
+sToMicro s = s * 1000000 
 
-
--- This timer work but how can I stop it if you finish early???
-setupForcedEndTimer :: Model -> Sub Action
-setupForcedEndTimer Model{quizConfig} = \sink -> do
+startForcedEndTimer :: Model -> Sub Action
+startForcedEndTimer Model{quizConfig} = \sink -> do
   case quizConfig of
     Nothing -> sink Init
     Just QuizConfig{allotedTime} -> do
       if allotedTime > 0 then do
           threadDelay (sToMicro allotedTime) 
-          sink ShowQuizResult 
+          sink FinishedQuiz 
         else sink Init
-  where sToMicro s = s * 1000000 
 
 handleUserFormSubmit :: Model -> Effect Action Model
 handleUserFormSubmit m = m <# do
-  -- Ignores failure to get name
   name <- getInputValue "name"
   return $ SetUserName (fromMisoString name)
 

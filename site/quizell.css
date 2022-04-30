@@ -234,10 +234,14 @@ label+input {
 
 .quizView>header {
     position: relative;
-    display: flex;
+    display: grid;
     gap: var(--spacing);
-    flex-flow: row wrap;
-    padding-top: 2em;
+    
+    grid-template: 
+        "a b c" auto 
+        "d e e" auto / 1fr 1fr 1fr;
+
+    padding-top:    2em;
     justify-content: space-between;
 }
 

@@ -118,9 +118,9 @@ viewQuizInfo :: (String, QuizConfig) -> View Action
 viewQuizInfo (taker,QuizConfig{allotedTime,quiz, testFile}) = header_ [class_ "card"] [
     span_ [] [ezText $ "User: " ++ taker],
     span_ [] [ezText $ "File: " ++ testFile],
+    span_ [] [ezText $ "Question " ++ show currQuestion ++ "/" ++ show totalQuestions],
     span_ [] [ezText $ "Alloted Time (In Seconds): " ++ show allotedTime],
     div_ [] [span_ [] [text "Elapsed Time: "], span_ [id_ "timer"] [text ""]],
-    span_ [] [ezText $ "Question " ++ show currQuestion ++ "/" ++ show totalQuestions],
     progress_ [max_ . msShow $ totalQuestions, value_ . msShow $ totalAnswered, min_ "0"] []
   ]
   where totalQuestions = Q.total quiz
