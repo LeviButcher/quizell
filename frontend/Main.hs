@@ -25,6 +25,7 @@ import Control.Applicative
 import Control.Monad.Except
 import Control.Concurrent
 import Data.Time.Format
+import Language.Javascript.JSaddle.Value
 
 -- MVC TODO
 -- [x] Calculate and Show Results
@@ -73,7 +74,7 @@ updateModel Next m@Model{quizConfig} = noEff $
       Just $ config{quiz=if Q.hasNext quiz then Q.next quiz else quiz} 
 
 updateModel (Answer a) m = answerCurr a m
-updateModel FinishedQuiz m = m <# (SetEndTime <$> getCurrentTime)
+updateModel FinishedQuiz m = batchEff m [(SetEndTime <$> getCurrentTime), pure EndForks]
 updateModel (SetEndTime end) m@Model{quizConfig} = 
   m{quizConfig=newConfig <|> quizConfig} <# (return ShowQuizResult)
   where 
@@ -100,19 +101,31 @@ updateModel (SetUserName name) m = m {taker=Just name} <# pure ShowHome
 
 -- Sets Form Information
 updateModel (SetFormError e) m = noEff $ m {formError=Just e}
+updateModel (AddForkId forkId) m@Model{forkList} = noEff $ m{forkList=forkId:forkList}
+updateModel EndForks m = killForks m
 
+
+killForks :: Model -> Effect Action Model
+killForks m@Model{forkList} = m <# do
+  traverse killThread forkList
+  return Init
 
 startVisualTimer :: Sub Action
 startVisualTimer = \sink -> do
   currTime <- getCurrentTime
-  forever $ updateTimer currTime >> threadDelay (sToMicro 1)
+  forkId <- forkIO (forever $ updateTimer currTime >> threadDelay (sToMicro 1))
+  sink $ AddForkId forkId
   where 
     updateTimer startTime = do
+      val <- getElementById "timer" >>= valIsNull
+      guard (not val)
       currTime <- getCurrentTime
       let time = currTime `diffUTCTime` startTime
           -- timeString = formatTime defaultTimeLocale "%h:%m:%s" time
           -- Can't due formatTime because theirs no instance of NominalDiffTime???
       setElementInnerHTML "timer" $ (ms . show) time
+      
+
 
 -- Convert seconds to microseconds
 sToMicro :: Int -> Int
@@ -122,11 +135,19 @@ startForcedEndTimer :: Model -> Sub Action
 startForcedEndTimer Model{quizConfig} = \sink -> do
   case quizConfig of
     Nothing -> sink Init
-    Just QuizConfig{allotedTime} -> do
+    Just x -> do
+      forkId <- forkIO (sleepingTimer sink x)
+      sink $ AddForkId forkId
+  where 
+    sleepingTimer sink QuizConfig{allotedTime} = do
       if allotedTime > 0 then do
-          threadDelay (sToMicro allotedTime) 
+          threadDelay (sToMicro allotedTime)
+          -- Check to make sure quiz is still active
+          val <- getElementById "timer" >>= valIsNull
+          guard (not val)
           sink FinishedQuiz 
         else sink Init
+
 
 handleUserFormSubmit :: Model -> Effect Action Model
 handleUserFormSubmit m = m <# do

@@ -11,6 +11,7 @@ import qualified QuizCLI as CLI
 import qualified QuizResults as R
 import Data.Time.Clock
 import Control.Applicative
+import Control.Concurrent
 
 -- Should change this stuff to Maybe Types
 data Model = Model
@@ -18,7 +19,8 @@ data Model = Model
     state :: State,
     pastResults :: [R.QuizResults],
     formError :: Maybe String,
-    quizConfig :: Maybe QuizConfig
+    quizConfig :: Maybe QuizConfig,
+    forkList :: [ThreadId]
   } deriving (Eq, Show)
 
 data QuizConfig = QuizConfig {
@@ -57,6 +59,8 @@ data Action
   | SetUserName String -- update Model with User name
   | SetFormError String -- updates Model with form Error (Doesn't change state)
   | StartTimer -- Start the timer to close the quiz after alloted time
+  | AddForkId ThreadId -- Adds a forkID to forkList
+  | EndForks -- Ends all forks in forkList
   deriving (Eq, Show)
 
 
@@ -66,7 +70,8 @@ createDefaultModel = return $ Model {
     state=Home, 
     pastResults=[],
     formError = Nothing,
-    quizConfig=Nothing
+    quizConfig=Nothing,
+    forkList=[]
   }
 
 getModelResults :: Model -> Maybe R.QuizResults
