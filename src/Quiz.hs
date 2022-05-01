@@ -28,6 +28,9 @@ type Quiz = Zipper AnsweredQuestion
 
 data Direction = Up | Down
 
+toBeginning :: Quiz -> Quiz
+toBeginning = start
+
 next, prev :: Quiz -> Quiz
 next = right
 prev = left

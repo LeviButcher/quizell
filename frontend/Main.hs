@@ -41,8 +41,8 @@ import Language.Javascript.JSaddle.Value
 -- [x] Improve showing errors on forms and handling them
 -- [x] Improve Backend QuestionList to Quiz creation
 -- [x] Time Limit on quiz
--- [] Show Correct Answers after quiz is finished
--- [] Make times end themselves by query dom for quiz elements
+-- [x] Make timers end by ending their threads
+-- [x] Show Correct Answers after quiz is finished
 -- [] Have Default Quizzes Available to take
 
 -- | Entry point for a miso application
@@ -80,7 +80,9 @@ updateModel (SetEndTime end) m@Model{quizConfig} =
   where 
     newConfig = do
       conf <- quizConfig
-      return $ conf{endTime=Just end}
+      -- Adding this here to reset quiz to beginning
+      let newQuiz = Q.toBeginning . quiz $ conf
+      return $ conf{endTime=Just end, quiz=newQuiz}
 
 updateModel ShowQuizResult m = (storeResultsInStorage m) *> (noEff $ m {state=Finished})
 
@@ -117,8 +119,8 @@ startVisualTimer = \sink -> do
   sink $ AddForkId forkId
   where 
     updateTimer startTime = do
-      val <- getElementById "timer" >>= valIsNull
-      guard (not val)
+      ele <- getElementById "timer" >>= valIsNull
+      guard (not ele)
       currTime <- getCurrentTime
       let time = currTime `diffUTCTime` startTime
           -- timeString = formatTime defaultTimeLocale "%h:%m:%s" time
@@ -143,8 +145,8 @@ startForcedEndTimer Model{quizConfig} = \sink -> do
       if allotedTime > 0 then do
           threadDelay (sToMicro allotedTime)
           -- Check to make sure quiz is still active
-          val <- getElementById "timer" >>= valIsNull
-          guard (not val)
+          ele <- getElementById "timer" >>= valIsNull
+          guard (not ele)
           sink FinishedQuiz 
         else sink Init
 

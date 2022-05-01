@@ -72,16 +72,20 @@ viewHome Model{taker=Just name} =
 viewFinishScreen :: Model -> View Action
 viewFinishScreen m =
   section_
-    []
-    [ res,
+    [class_ "quizResult"]
+    [ resultCard,
+      answers,
       goHomeButton
     ]
   where
-    goHomeButton = button_ [onClick ShowHome] [text "Go Back To Home"]
-    res = case getModelResults m of 
+    goHomeButton = button_ [onClick ShowHome] [text "Return to Menu"]
+    resultCard = case getModelResults m of 
         Nothing -> div_ [] [text "Something Failed"]
         Just x -> viewResult x
-    
+    answers = case quizConfig m of
+      Nothing -> div_ [] []
+      Just x -> viewCurrentQuestion True x
+
 viewResult :: R.QuizResults -> View Action
 viewResult R.QuizResults {total, correct, taker, testFile, startTime, endTime, allotedTime} =
   article_
@@ -109,7 +113,7 @@ viewTakingQuiz Model{quizConfig, taker} = section_
     (case liftA2 (,) taker quizConfig of
       Just x -> [
           viewQuizInfo x,
-          viewCurrentQuestion (snd x)
+          viewCurrentQuestion False (snd x)
         ]
       Nothing -> [])
 
@@ -129,38 +133,42 @@ viewQuizInfo (taker,QuizConfig{allotedTime,quiz, testFile}) = header_ [class_ "c
         msShow = ms . show
 
 
-viewCurrentQuestion :: QuizConfig -> View Action
-viewCurrentQuestion QuizConfig {quiz} = form_ [name_ "Quiz Question", onSubmit FinishedQuiz, class_ "card"]
+viewCurrentQuestion :: Bool -> QuizConfig -> View Action
+viewCurrentQuestion isFinished QuizConfig {quiz} = form_ [name_ "Quiz Question", onSubmit FinishedQuiz, class_ "card"]
   [ header_
       []
       [ h2_ [] [text (ms quest)]
       ],
-    section_ [class_ "inputGroup"] [answerCheckboxList (Q.currAnswer quiz)],
+    section_ [class_ "inputGroup"] [answerCheckboxList isFinished (Q.currAnswer quiz)],
     footer_
       []
-      [ nextButton,
-        finishButton
-      ]
+      (if isFinished then finishedButtons else unFinishedButtons)
   ]
   where 
     (Q.Question quest _ _, _) = Q.currAnswer quiz
     nextButton = button_ [onClick Next, type_ "button", class_ "button_light"] [text "Next"]
     finishButton = button_ [type_ "submit", class_ "button_dark"] [text "Finish"]
+    finishedButtons = [nextButton]
+    unFinishedButtons = [nextButton, finishButton]
 
-answerCheckboxList :: Q.AnsweredQuestion -> View Action
-answerCheckboxList (Q.Question _ answers _, ans) = fieldset_ [class_ "checkbox_group"] (legend : items)
+answerCheckboxList :: Bool -> Q.AnsweredQuestion -> View Action
+answerCheckboxList isFinished (Q.Question _ answers ci, ans) = fieldset_ [class_ "checkbox_group"] (legend : items)
   where
     item :: (Int, String) -> View Action -- Vomiting over having to put inputs inside labels :/
     item (i, x) =
-      div_ [class_ "checkbox"] [
+      div_ [class_ "checkbox", (class_ $ answeredCorrectly i)] [
           label_[for_ . ms $ x][text (ms x)], 
           input_ [type_ "checkbox", value_ (ms i), checked_ (isChecked ans i), 
-            onClick (Answer i), id_ . ms $ x]
+            onClick (Answer i), id_ . ms $ x, disabled_ isFinished]
         ]
         
     isChecked :: Maybe Int -> Int -> Bool
-    isChecked Nothing = const False
-    isChecked (Just a) = (== a)
+    isChecked Nothing i = False
+    isChecked (Just a) i = i == a
+
+    answeredCorrectly i
+      | isFinished && (ci == i) = "correct" 
+      | otherwise = ""
     legend = legend_ [] [text "Select an Answer"]
     items = item <$> zip [1 ..] answers
 

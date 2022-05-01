@@ -146,6 +146,10 @@ button {
     border: 1px solid var(--black);
 }
 
+button:hover {
+    cursor: pointer;
+}
+
 .button_light {
     background-color: var(--purp_light);
     color: var(--black);
@@ -325,4 +329,13 @@ progress[value]::-moz-progress-bar {
 
 .timer {
     outline: 1px solid red;
+}
+
+.quizResult {
+    display: grid;
+    gap: var(--spacing);
+}
+
+.correct {
+    color: green;
 }
